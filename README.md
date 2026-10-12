@@ -7,7 +7,7 @@
 | 담당 | 김진아 |
 | 관련 기능 ID | I-02 CI/CD |
 | 기술 | Helm, ArgoCD (App of Apps), Kubernetes |
-| 브랜치 | `main`만 + PR. `main`이 곧 클러스터의 목표 상태 |
+| 브랜치 | `main`만. `main`이 곧 클러스터의 목표 상태 |
 
 ---
 
@@ -23,7 +23,7 @@ flowchart LR
 
 - **CI(GitHub Actions)** 는 이미지를 ECR에 올리고, 이 레포의 `services/<서비스>/values.yaml` 이미지 태그를 바꾸는 커밋을 만든다. 커밋 메시지: `chore(order-service): image a1b2c3d`
 - **CD(ArgoCD)** 는 클러스터 안에서 이 레포를 끌어가(pull) 적용한다. 그래서 CI는 클러스터에 접근할 필요가 없다.
-- 사람이 바꾸는 값(파드 수, 환경 변수)은 PR로 바꾼다.
+- 사람이 바꾸는 값(파드 수, 환경 변수)은 담당자가 직접 커밋한다.
 
 **왜 GitOps인가:** 지금 클러스터에 무엇이 떠 있는지 이 레포만 보면 안다. 롤백은 커밋 되돌리기다. 주말에 클러스터를 지웠다 다시 만들어도 ArgoCD만 다시 설치하면 이 레포 상태대로 앱이 자동으로 다시 올라온다.
 
@@ -86,6 +86,6 @@ kubectl apply -n argocd -f argocd/root-app.yaml
 
 ## 6. 기여
 
-- `main`만 쓴다. 사람이 바꾸는 값은 작업 브랜치 → PR → 담당자가 직접 합친다(승인 필요 없음).
+- `main`만 쓴다. 사람이 바꾸는 값은 담당자가 직접 push한다(PR·승인 필수 없음).
 - 이미지 태그 변경은 CI가 자동 커밋한다. 손으로 고치지 않는다.
 - 비밀값(DB 비밀번호, JWT 키, 토스 키)은 이 레포에 쓰지 않는다. Kubernetes Secret으로 따로 넣는다.
