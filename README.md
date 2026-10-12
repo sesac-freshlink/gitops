@@ -41,10 +41,14 @@ gitops/
 │   ├── inventory-service/values.yaml
 │   ├── order-service/values.yaml
 │   └── logistics-simulator/values.yaml
+├── platform/
+│   └── observability/           # Prometheus·Grafana·Loki·Alloy·Zipkin Application
 └── argocd/
     ├── root-app.yaml            # App of Apps
     └── apps/                    # 서비스별 Application
 ```
+
+관측성 스택(지표·로그·추적)은 [`platform/observability`](platform/observability/README.md)에서 `observability` 네임스페이스로 설치한다.
 
 ## 3. 공통 차트 `spring-service`가 챙기는 것
 
