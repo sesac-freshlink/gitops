@@ -1,0 +1,9 @@
+# Helm
+charts/*/charts/
+*.tgz
+# 비밀값은 커밋하지 않는다
+*secret*.yaml
+!**/templates/*secret*.yaml
+.idea/
+.vscode/
+.DS_Store
