@@ -1,7 +1,7 @@
 # platform/observability
 
 > 관측성 스택(I-03). **지표는 Prometheus, 로그는 Loki, 추적은 Zipkin, 화면은 Grafana 하나**로 본다. 전부 ArgoCD가 `observability` 네임스페이스에 설치한다.
-> 결정 이유: [infra/docs/기술스택과 선택이유.md](https://github.com/sesac-freshlink/infra/tree/main/docs) 3-5 · 구조도의 ⑬·청록색 파드: [docs/architecture](https://github.com/sesac-freshlink/.github/tree/main/docs/architecture)
+> 결정 이유: [기술스택과 선택이유.md](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%EC%88%A0%EC%8A%A4%ED%83%9D%EA%B3%BC%20%EC%84%A0%ED%83%9D%EC%9D%B4%EC%9C%A0.md) 3-5 · 구조도의 ⑬·청록색 파드: [docs/architecture](https://github.com/sesac-freshlink/.github/tree/main/docs/architecture)
 
 | 파일 | 설치되는 것 | 핵심 설정 |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ flowchart LR
 - [ ] infra: Loki 로그 버킷(S3, 14일 수명 주기)과 Loki용 IRSA Role → `loki.yaml`의 버킷 이름·Role ARN 채우기
 - [ ] infra: EBS CSI 드라이버와 `gp3` StorageClass (Prometheus 볼륨)
 - [ ] 차트·이미지 버전을 설치 직전에 최신으로 고정 (`targetRevision`, zipkin 이미지 태그)
-- [ ] `argocd/root-app.yaml`이 이 폴더도 읽게 하기
+- [ ] `argocd/<환경>/apps/`가 이 폴더도 읽게 하기
 - [ ] `charts/spring-service`에 ServiceMonitor 넣기 (서비스 5개 자동 수집)
 - [ ] Grafana 대시보드 JSON을 이 폴더에 두기 (클러스터를 다시 만들어도 그대로 복구)
 
