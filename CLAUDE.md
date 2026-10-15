@@ -43,8 +43,25 @@ Respond like a caveman. No articles, no filler words, no pleasantries, no yappin
 ✅ 네임스페이스: 앱 freshlink, 관측성 observability
 ✅ ArgoCD App of Apps: argocd/<env>/root-app.yaml → argocd/<env>/apps/. 새 앱은 기존 Application 형식 복사
 ✅ 외부 Helm 차트(관측성 등) 버전 고정
-✅ cluster 묶음은 주말마다 삭제·재생성된다. ArgoCD 재설치만으로 전부 다시 올라와야 한다 (수동 단계 금지)
+✅ dev cluster 묶음은 주말마다 삭제·재생성되고, prod cluster 묶음은 켤 때마다 새로 만든다. ArgoCD 재설치만으로 전부 다시 올라와야 한다 (수동 단계 금지)
 ```
+
+## 두 환경 요약
+
+README 3·4장이 진실. 요약:
+
+| | dev | prod |
+| --- | --- | --- |
+| values | `envs/dev/<svc>/values.yaml` | `envs/prod/<svc>/values.yaml` (키 같고 값만 다름) |
+| 이미지 태그 | 서비스 레포 `dev` push 때 CI가 커밋 | 서비스 레포 `main` 머지 때 CI가 dev 태그를 그대로 승격 커밋 (다시 빌드하지 않음) |
+| AWS 리소스 이름 | `freshlink-dev-*` | `freshlink-prod-*` |
+| 큐 | `dev-inventory-commands.fifo` 등 (+ 개발자별 큐) | `prod-inventory-commands.fifo` 등 |
+| 클러스터 | 평일 09:00~21:00, 금 21:00 삭제·월 08:40 생성 | 평소 꺼 둔다. 릴리스 확인·리허설·시연 날만 켠다. 꺼진 동안에도 커밋은 쌓이고, 켜면 ArgoCD가 마지막 상태로 맞춘다 |
+
+- 큐 이름 앞부분은 환경 변수 `QUEUE_PREFIX`로 넣는다(정확한 형식은 `.github` 레포 `docs/jina/할일-목록.md` 3·4번에서 정함).
+- ECR과 서비스 CI가 맡는 GitHub OIDC Role은 두 환경 공용이다. 그래서 prod가 dev 이미지를 그대로 받는다. `dev` 브랜치가 맡을 수 있는 Role에는 prod 쓰기 권한(prod 버킷 쓰기, prod terraform 실행 등)을 주지 않는다(Role 개수·권한 범위는 할 일 9·10에서 정함).
+- AWS 쪽 구조(`global`, `envs/{dev,prod}/{persistent,cluster}`, state 키 5개)는 `infra` 레포 `CLAUDE.md`를 본다.
+- 팀원 IAM 그룹 `freshlink-developers`는 dev 리소스만 쓴다. prod는 읽기 권한도 없다.
 
 ---
 
@@ -58,6 +75,8 @@ envs/{dev,prod}/<svc>/values.yaml  # gateway, member-service, inventory-service,
 platform/observability/       # 관측성 스택 Application
 argocd/{dev,prod}/root-app.yaml, apps/  # App of Apps
 ```
+
+예전 `services/` 폴더는 `envs/<env>/`로 옮긴다(할 일 11). 새 파일은 `services/`에 만들지 않는다.
 
 ---
 
@@ -82,4 +101,9 @@ argocd/{dev,prod}/root-app.yaml, apps/  # App of Apps
 helm lint charts/spring-service
 helm template <svc> charts/spring-service -f envs/<env>/<svc>/values.yaml | kubeconform -strict -ignore-missing-schemas -summary
 actionlint   # .github/workflows가 있으면
+
+# dev와 prod values의 키가 같은지 (출력이 없어야 한다)
+for svc in gateway member-service inventory-service order-service logistics-simulator; do
+  diff <(yq 'paths | join(".")' envs/dev/$svc/values.yaml) <(yq 'paths | join(".")' envs/prod/$svc/values.yaml)
+done
 ```
