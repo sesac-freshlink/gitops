@@ -1,0 +1,5 @@
+apiVersion: v2
+name: spring-service
+description: FreshLink 서비스 5개가 같이 쓰는 차트. 서비스·환경별 차이는 envs/<env>/<서비스>/values.yaml로만 둔다.
+type: application
+version: 0.1.0

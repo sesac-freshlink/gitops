@@ -1,0 +1,20 @@
+# env, gitops, cluster는 root Application(infra charts/argocd-root)이 넣는다. 여기는 키 모양과 서비스 목록만 둔다.
+env: ""   # dev | prod → envs/<env>/<서비스>/values.yaml
+gitops:
+  repoURL: https://github.com/sesac-freshlink/gitops.git
+  revision: main
+cluster:
+  imageRegistry: ""
+  irsaRoleArns: {}
+  env: {}
+
+# 앱 네임스페이스(dev·prod 같다)
+namespace: freshlink
+
+# 서비스 = 레포 = ECR = Helm 릴리스 = Application 이름. 새 서비스는 여기에 한 줄 더한다(README 9장)
+services:
+  - gateway
+  - member-service
+  - inventory-service
+  - order-service
+  - logistics-simulator

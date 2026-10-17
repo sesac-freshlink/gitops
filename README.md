@@ -9,7 +9,7 @@
 | 기술 | Helm, ArgoCD (App of Apps), Kubernetes, Grafana Alloy·Loki·Prometheus·Zipkin |
 | 환경 | dev, prod 2개. 같은 차트를 쓰고 `envs/<환경>/` 의 값만 다르다 |
 | 브랜치 | `main`만. `main`이 곧 두 클러스터의 목표 상태 |
-| 지금 상태 | 관측성 Application 초안만 있다. 공용 차트·환경별 values·ArgoCD Application은 dev 클러스터가 생긴 뒤 채운다 ([10장](#10-지금-상태와-남은-일)) |
+| 지금 상태 | 공용 차트, dev·prod values, App of Apps 차트가 있다(할 일 9). 관측성 Application은 초안이다 ([10장](#10-지금-상태와-남은-일)) |
 
 **목차**
 
@@ -89,7 +89,7 @@ flowchart LR
 | 용도 | 팀원 개발·통합 확인, 부하 시험 | 릴리스 확인, 리허설, 시연 |
 | 무엇이 올라가나 | 서비스 레포 `dev` 브랜치의 최신 이미지 | dev에서 검증한 **같은 이미지 태그** |
 | 이 레포의 값 | `envs/dev/<서비스>/values.yaml` | `envs/prod/<서비스>/values.yaml` |
-| ArgoCD 시작점 | `argocd/dev/root-app.yaml` | `argocd/prod/root-app.yaml` |
+| ArgoCD 시작점 | root Application (infra dev cluster 묶음이 등록, `env=dev`) | root Application (infra prod cluster 묶음이 등록, `env=prod`) |
 | 클러스터·VPC·RDS·SQS·Cognito | 환경마다 따로 (`freshlink-dev-*`) | 환경마다 따로 (`freshlink-prod-*`) |
 | 큐 이름 | `dev-inventory-commands.fifo` 등 (+ 개발자별 큐) | `prod-inventory-commands.fifo` 등 |
 | Spring 프로필 | `dev` | `prod` |
@@ -178,37 +178,40 @@ gitops/
 │       ├── zipkin.yaml
 │       └── zipkin/                  # Zipkin Deployment·Service 매니페스트
 └── argocd/
-    ├── dev/
-    │   ├── root-app.yaml            # dev 클러스터의 시작점 (App of Apps)
-    │   └── apps/                    # 서비스 5개 + 관측성 Application
-    └── prod/
-        ├── root-app.yaml
-        └── apps/
+    └── apps/                        # App of Apps 차트 (dev·prod 같이 쓴다)
+        ├── Chart.yaml
+        ├── values.yaml              # 서비스 목록
+        └── templates/               # 서비스 Application 5개, ClusterSecretStore
 ```
+
+root Application은 이 레포에 두지 않는다. infra cluster 묶음(`infra/charts/argocd-root`)이 ArgoCD 설치 직후 등록하면서 환경 이름(`dev`·`prod`)과 계정마다 다른 값(ECR 주소, IRSA Role ARN, Cognito 주소·클라이언트 ID)을 넘긴다. 이 레포는 공개 레포라 계정 값을 적지 않는다.
 
 이름 규칙: **레포 이름 = ECR 리포지토리 = 이미지 = Helm 릴리스 = Deployment·Service = ArgoCD Application = ServiceAccount**. 어디서 보든 `order-service`면 `order-service` 레포 코드다.
 
 ## 6. ArgoCD App of Apps
 
-클러스터마다 ArgoCD에 Application을 하나(`root-app`)만 등록하면, 그 Application이 `argocd/<환경>/apps/` 폴더를 읽어 나머지 Application을 전부 만든다.
+클러스터마다 ArgoCD에 Application을 하나(`root`)만 등록하면, 그 Application이 `argocd/apps` 차트를 그려 나머지 Application을 전부 만든다. `root`는 infra cluster 묶음이 Terraform으로 등록하므로 사람이 할 일이 없다.
 
 ```mermaid
 flowchart TB
-    TF["Terraform (infra cluster 묶음)<br/>ArgoCD 설치 + root-app 등록"] --> R["root-app<br/>argocd/dev/root-app.yaml"]
-    R --> A["argocd/dev/apps/"]
+    TF["Terraform (infra cluster 묶음)<br/>ArgoCD 설치 + root 등록<br/>(env, ECR 주소, IRSA ARN, Cognito 값)"] --> R["root<br/>infra charts/argocd-root"]
+    R --> A["argocd/apps 차트"]
     A --> G["gateway"]
     A --> MS["member-service"]
     A --> IS["inventory-service"]
     A --> OS["order-service"]
     A --> LS["logistics-simulator"]
-    A --> O["observability<br/>(platform/observability 읽기)"]
+    A --> CSS["ClusterSecretStore<br/>aws-secrets-manager"]
     G & MS & IS & OS & LS -. "차트" .-> C["charts/spring-service"]
     G -. "값" .-> V["envs/dev/gateway/values.yaml"]
 ```
 
-- 서비스 Application 하나 = `charts/spring-service` 차트 + `envs/<환경>/<서비스>/values.yaml` 값.
+- 서비스 Application 하나 = `charts/spring-service` 차트 + `envs/<환경>/<서비스>/values.yaml` 값 + root가 넘긴 `cluster.*`·`serviceAccount.roleArn`.
+- `ClusterSecretStore` `aws-secrets-manager`도 이 차트가 만든다. 인증 설정 없이 External Secrets Operator 컨트롤러의 IRSA Role로 Secrets Manager를 읽는다(앱 DB 비밀 3개와 토스 키만).
+- 관측성 Application은 할 일 16에서 이 차트에 더한다.
+- Application에는 finalizer를 두지 않는다. 금요일 삭제 때 ArgoCD 컨트롤러를 먼저 멈추기 때문에 finalizer가 있으면 지우기가 끝나지 않는다. 서비스를 목록에서 빼면 Application만 사라지고 리소스는 남으므로 그때는 손으로 지운다.
 - 동기화 정책은 전부 `automated: { prune: true, selfHeal: true }`. 레포에서 지운 리소스는 클러스터에서도 지워지고, 손으로 바꾼 것은 되돌아간다.
-- 새 서비스를 추가할 때는 기존 Application 파일을 복사해 이름만 바꾼다(9장).
+- 새 서비스를 추가할 때는 `argocd/apps/values.yaml`의 `services`에 한 줄 더한다(9장).
 - 네임스페이스는 앱 `freshlink`, 관측성 `observability`. 환경은 클러스터로 나누므로 네임스페이스 이름은 dev·prod가 같다.
 
 ## 7. 공용 차트 `spring-service` 규칙
@@ -225,9 +228,9 @@ flowchart TB
 | 리소스 | CPU 요청 150m, CPU 상한 없음. 메모리 요청·상한은 8장 | 노드 2대에 관측성까지 들어가게 맞춘 값. 기동할 때는 노드의 남는 CPU를 빌려 쓴다 |
 | 배치 | `topologySpreadConstraints`로 노드 간 분산 | 같은 서비스 파드 2개가 서로 다른 AZ의 노드에 뜬다 |
 | ServiceAccount | 이름 = 레포 이름, IRSA annotation으로 `freshlink-<env>-<레포>-irsa` 연결 | 서비스마다 자기 큐에만 권한이 있다. 파드에 AWS 키를 넣지 않는다 |
-| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다 | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
-| 지표 | `ServiceMonitor`가 8080의 `/actuator/prometheus`를 수집 | 서비스를 추가해도 Prometheus 설정을 손댈 필요가 없다 |
-| 환경 변수 | DB 주소, 큐 이름, Cognito 주소·클라이언트 ID는 전부 values에서 환경 변수로 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
+| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다. values의 `db.secretName`을 채우면 `DB_URL`·`DB_USERNAME`·`DB_PASSWORD`가 환경 변수로 들어간다 | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
+| 지표 | `ServiceMonitor`가 8080의 `/actuator/prometheus`를 수집. Prometheus Operator가 설치된 클러스터에서만 만든다(없을 때 만들면 동기화 실패) | 서비스를 추가해도 Prometheus 설정을 손댈 필요가 없다 |
+| 환경 변수 | 큐 앞부분(`QUEUE_PREFIX`)·프로필은 values의 `env`, DB는 `db.secretName`, `AWS_REGION`·`COGNITO_ISSUER_URI`·`COGNITO_CLIENT_ID`·`COGNITO_USER_POOL_ID`는 root가 모든 서비스에 넣는다 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
 | 이미지 태그 | git 커밋 7자리. `latest` 금지 | ArgoCD는 values의 태그가 바뀌어야 새 버전을 배포한다. `latest`면 변경을 못 알아채고 무엇이 떠 있는지도 모른다 |
 | 오토스케일링 | MVP는 HPA 없이 파드 수 고정 | 노드 2대 용량이 정해져 있다. 노드 그룹 최대 3은 수동 증설용 |
 | gateway만 | `Ingress`(ALB, target-type `ip`) | 외부 요청의 입구. 나머지 4개는 클러스터 안에서만 부른다 |
@@ -292,14 +295,14 @@ diff <(yq 'paths | join(".")' envs/dev/order-service/values.yaml) \
 
 ### 새 서비스 추가
 
-1. `infra`에서 ECR 리포지토리와 IRSA Role을 만든다.
+1. `infra`에서 ECR 리포지토리와 IRSA Role을 만든다(IRSA Role ARN을 root에 넘기는 목록도 infra `envs/<env>/cluster/helm.tf`에 더한다).
 2. `envs/dev/<새 서비스>/values.yaml`, `envs/prod/<새 서비스>/values.yaml`을 기존 파일에서 복사한다.
-3. `argocd/dev/apps/`, `argocd/prod/apps/`에 기존 Application을 복사해 이름만 바꾼다.
-4. 서비스 레포에 `spring-build.yml` 호출부를 넣는다.
+3. `argocd/apps/values.yaml`의 `services`에 이름을 더한다.
+4. 서비스 레포에 `.github/workflows/ci.yml`(재사용 워크플로 `spring-build.yml` 호출부)을 넣는다.
 
 ### 클러스터를 새로 만든 뒤 (월요일, 또는 prod를 켤 때)
 
-할 일이 없다. infra의 cluster 묶음이 ArgoCD를 설치하고 `root-app`을 등록하면, 나머지는 이 레포를 읽어 저절로 올라온다. 동기화 상태만 확인한다.
+할 일이 없다. infra의 cluster 묶음이 ArgoCD를 설치하고 `root`를 등록하면, 나머지는 이 레포를 읽어 저절로 올라온다. 동기화 상태만 확인한다.
 
 ```bash
 kubectl -n argocd get applications          # 전부 Synced · Healthy인지
@@ -321,23 +324,23 @@ kubectl -n observability port-forward svc/kube-prometheus-stack-grafana 3000:80
 | 구분 | 상태 |
 | --- | --- |
 | `platform/observability` | Application 초안 있음 (버전·버킷 이름·Role ARN은 자리표시) |
-| `charts/spring-service` | 빈 폴더 |
-| `envs/dev`, `envs/prod` | 아직 없음 (예전 `services/` 폴더는 `envs/<환경>/`로 옮긴다) |
-| `argocd/<환경>/` | 아직 없음 |
+| `charts/spring-service` | 있음 (할 일 9) |
+| `envs/dev`, `envs/prod` | 서비스 5개씩 있음. 이미지 태그는 CI가 채운다 |
+| `argocd/apps` | App of Apps 차트 있음. root는 infra가 등록한다 |
 
 남은 일 (순서대로):
 
-- [ ] `charts/spring-service` 작성: Deployment·Service·ServiceAccount·ServiceMonitor·ExternalSecret, gateway용 Ingress (7장 규칙)
-- [ ] `envs/dev/<서비스>/values.yaml` 5개, `argocd/dev/root-app.yaml`·`apps/`
-- [ ] `.github`의 `spring-build.yml`이 `envs/dev/<서비스>/values.yaml` 태그를 커밋하게 연결
+- [x] `charts/spring-service` 작성: Deployment·Service·ServiceAccount·ServiceMonitor·ExternalSecret, gateway용 Ingress (7장 규칙)
+- [x] `envs/dev/<서비스>/values.yaml` 5개, `argocd/apps` 차트(root는 infra가 등록)
+- [x] `.github`의 `spring-build.yml`이 `envs/dev/<서비스>/values.yaml` 태그를 커밋하게 연결
 - [ ] dev ArgoCD에서 서비스 5개 Synced·Healthy, `latest` 태그 없음 확인
 - [ ] 관측성: infra 출력값(Loki 버킷, Loki IRSA Role ARN, gp3 StorageClass)을 채우고 dev에 올리기. Grafana 대시보드 JSON을 이 레포에 두기
-- [ ] `envs/prod/`, `argocd/prod/` 복제 + `main` 머지 시 태그 승격 워크플로
+- [ ] prod root 등록(infra prod cluster 묶음) + `main` 머지 시 태그 승격 워크플로
 - [ ] 외부 Helm 차트·이미지 버전을 설치 직전에 고정 (`targetRevision`, zipkin 이미지 태그)
 
 ## 11. 규칙 요약
 
-- `main`만 쓴다. 담당자가 직접 push한다(PR·승인 필수 없음, 강제 push·브랜치 삭제만 금지).
+- `main`만 쓴다. 사람의 변경은 PR로 올린다(`.github` `CONTRIBUTING.md`). CI의 이미지 태그 커밋만 `main`에 바로 push한다. 강제 push·브랜치 삭제 금지.
 - 커밋 메시지: CI는 `chore(<서비스>): image <7자리>`, 사람은 `chore(order-service): dev 파드 3개로`처럼.
 - `kubectl apply/edit/delete`, `helm install/upgrade`로 클러스터를 직접 바꾸지 않는다. 바꿔도 ArgoCD가 되돌린다.
 - 이미지 태그는 CI만 바꾼다. 태그는 커밋 7자리, `latest` 금지.
