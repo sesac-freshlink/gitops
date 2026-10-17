@@ -1,0 +1,17 @@
+{{- /* Prometheus Operator(관측성, 할 일 16)가 설치된 클러스터에서만 만든다. 없을 때 만들면 동기화가 실패한다 */ -}}
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "spring-service.name" . }}
+  labels:
+    {{- include "spring-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "spring-service.selector" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+{{- end }}

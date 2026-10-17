@@ -30,7 +30,7 @@ Respond like a caveman. No articles, no filler words, no pleasantries, no yappin
 
 ```
 ⛔ kubectl apply/delete/edit, helm install/upgrade, argocd app sync 금지 — 배포는 이 레포 커밋 → ArgoCD
-   (root-app 등록은 infra cluster 묶음이 ArgoCD 설치 직후 한다. 사람 단계 없음)
+   (root Application 등록은 infra cluster 묶음(charts/argocd-root)이 ArgoCD 설치 직후 한다. 사람 단계 없음)
 ⛔ 비밀값(DB 비밀번호, 토스 키 등) 평문 금지. Secrets Manager + ExternalSecret으로만
 ⛔ 이미지 태그 손으로 수정 금지 — CI가 커밋한다 (chore(<svc>): image <sha7>)
 ✅ 이미지 태그 = git 커밋 7자리. latest 금지
@@ -41,7 +41,8 @@ Respond like a caveman. No articles, no filler words, no pleasantries, no yappin
 ✅ 컨테이너 resources.requests/limits, readiness/liveness probe 필수 (README 8장 파드 계획 기준). 컨테이너 포트·Actuator 모두 8080
 ✅ ServiceAccount 이름 = 레포 이름, IRSA annotation으로 freshlink-<env>-<레포>-irsa 연결
 ✅ 네임스페이스: 앱 freshlink, 관측성 observability
-✅ ArgoCD App of Apps: argocd/<env>/root-app.yaml → argocd/<env>/apps/. 새 앱은 기존 Application 형식 복사
+✅ ArgoCD App of Apps: root(infra가 등록, env·계정 값 전달) → argocd/apps 차트 → 서비스 Application. 새 서비스는 argocd/apps/values.yaml services에 추가
+⛔ 계정 ID·Cognito ID·IRSA ARN을 이 레포(공개)에 쓰지 않는다. root가 cluster.* 값으로 넘긴다
 ✅ 외부 Helm 차트(관측성 등) 버전 고정
 ✅ dev cluster 묶음은 주말마다 삭제·재생성되고, prod cluster 묶음은 켤 때마다 새로 만든다. ArgoCD 재설치만으로 전부 다시 올라와야 한다 (수동 단계 금지)
 ```
@@ -73,16 +74,16 @@ README 5장이 진실. 요약:
 charts/spring-service/        # 서비스 5개 공용 차트
 envs/{dev,prod}/<svc>/values.yaml  # gateway, member-service, inventory-service, order-service, logistics-simulator
 platform/observability/       # 관측성 스택 Application
-argocd/{dev,prod}/root-app.yaml, apps/  # App of Apps
+argocd/apps/                  # App of Apps 차트 (dev·prod 공용, root는 infra가 등록)
 ```
 
-예전 `services/` 폴더는 `envs/<env>/`로 옮긴다(할 일 11). 새 파일은 `services/`에 만들지 않는다.
+예전 `services/` 폴더는 지웠다(할 일 9). 새 파일은 `envs/<env>/`에 만든다.
 
 ---
 
 ## 다른 레포와의 연결
 
-- IRSA Role ARN, Loki 버킷, Cognito User Pool ID·issuer는 `infra` 출력값이다. 모르면 자리표시를 두고 사용자에게 알린다.
+- IRSA Role ARN, ECR 주소, Cognito issuer·클라이언트 ID는 infra cluster 묶음이 root에 넘긴다(`cluster.*`). Loki 버킷 같은 다른 infra 출력값은 모르면 자리표시를 두고 사용자에게 알린다.
 - 서비스 레포 CI가 `dev` push 때 `envs/dev/<svc>/values.yaml` 태그를 커밋하고, `main` 머지 때 그 태그를 `envs/prod/<svc>/values.yaml`로 옮긴다. 태그 키 경로를 바꾸면 `.github` 재사용 워크플로도 같이 고쳐야 한다.
 - 서비스 환경 변수 이름은 각 서비스 레포의 `application.yml`과 맞춘다. 다른 담당자 레포를 고쳐야 하면 작업 전 사용자에게 알린다.
 
@@ -90,7 +91,7 @@ argocd/{dev,prod}/root-app.yaml, apps/  # App of Apps
 
 ## 브랜치·커밋
 
-- `main`만 쓴다. 커밋: `chore(order-service): 파드 2개로` 같은 형식 (`.github` `CONTRIBUTING.md`)
+- `main`만 쓴다. 사람 변경은 PR, CI 태그 커밋만 바로 push. 커밋: `chore(order-service): 파드 2개로` 같은 형식 (`.github` `CONTRIBUTING.md`)
 - 커밋·push·PR은 사용자가 요청할 때만
 
 ---

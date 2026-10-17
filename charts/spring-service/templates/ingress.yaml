@@ -1,0 +1,28 @@
+{{- if .Values.ingress.enabled }}
+# 외부 입구(gateway만). AWS Load Balancer Controller가 ALB를 만든다. /api 만 넘긴다(/actuator는 넘기지 않는다).
+# ALB 상태 확인은 파드 IP로 바로 간다(X-Forwarded-For 없음). gateway는 X-Forwarded-For가 있는 /actuator 요청을 막는다
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "spring-service.name" . }}
+  labels:
+    {{- include "spring-service.labels" . | nindent 4 }}
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+    alb.ingress.kubernetes.io/tags: Project=freshlink
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "spring-service.name" . }}
+                port:
+                  name: http
+{{- end }}

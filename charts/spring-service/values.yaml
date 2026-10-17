@@ -1,0 +1,44 @@
+# 공통 기본값. 서비스·환경별 값은 envs/<env>/<서비스>/values.yaml에 둔다(키 구조는 dev·prod 같다).
+# cluster.* 와 serviceAccount.roleArn은 ArgoCD(argocd/apps 차트)가 넣는다. 값의 출처는 infra cluster 묶음(Terraform 출력)이다.
+
+replicaCount: 1
+
+image:
+  name: ""   # 비우면 릴리스 이름(= 레포 이름 = ECR 리포지토리)
+  tag: ""    # git 커밋 7자리. CI가 커밋한다. latest 금지
+
+# CPU 상한은 두지 않는다(기동할 때 노드의 남는 CPU를 빌려 쓴다). README 8장
+resources:
+  requests:
+    cpu: 150m
+    memory: 512Mi
+  limits:
+    memory: 768Mi
+
+# 서비스 환경 변수. SERVER_PORT는 차트가 8080으로 넣는다
+env: {}
+
+# 앱 DB 비밀(Secrets Manager 이름). 비우면 DB를 쓰지 않는 서비스. 값은 DB_URL·DB_USERNAME·DB_PASSWORD로 들어간다
+db:
+  secretName: ""
+
+# gateway만 켠다. ALB(target-type ip)가 /api 를 이 서비스로 넘긴다
+ingress:
+  enabled: false
+
+serviceAccount:
+  roleArn: ""   # IRSA Role ARN. 비우면 annotation 없음(gateway)
+
+cluster:
+  imageRegistry: ""   # <계정>.dkr.ecr.ap-northeast-2.amazonaws.com
+  env: {}             # 모든 서비스에 넣는 값 (AWS_REGION, COGNITO_*)
+
+probes:
+  readiness:
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    failureThreshold: 6
+  liveness:
+    initialDelaySeconds: 90   # 기동 중인 파드를 죽었다고 보고 재시작하지 않게 readiness보다 늦게
+    periodSeconds: 20
+    failureThreshold: 3

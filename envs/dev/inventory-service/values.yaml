@@ -1,0 +1,22 @@
+# inventory-service (dev). 키 구조는 envs/prod/inventory-service/values.yaml과 같고 값만 다르다.
+replicaCount: 2
+
+image:
+  tag: ""   # CI가 커밋한다 (chore(inventory-service): image <7자리>). 손으로 고치지 않는다
+
+resources:
+  requests:
+    cpu: 150m
+    memory: 640Mi
+  limits:
+    memory: 1Gi
+
+env:
+  SPRING_PROFILES_ACTIVE: dev
+  QUEUE_PREFIX: dev-
+
+db:
+  secretName: "freshlink-dev-inventory-db"
+
+ingress:
+  enabled: false
