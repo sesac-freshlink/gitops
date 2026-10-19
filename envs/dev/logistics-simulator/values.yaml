@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  tag: "a41e3fd"   # CI가 커밋한다 (chore(logistics-simulator): image <7자리>). 손으로 고치지 않는다
+  tag: "3121150"   # CI가 커밋한다 (chore(logistics-simulator): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
