@@ -25,6 +25,7 @@ db:
 # gateway만 켠다. ALB(target-type ip)가 /api 를 이 서비스로 넘긴다
 ingress:
   enabled: false
+  allowedPrefixLists: []   # 비우면 ALB가 인터넷 전체(0.0.0.0/0)에서 받는다. CloudFront 오리진용 목록 ID를 넣으면 CloudFront만 받는다
 
 serviceAccount:
   roleArn: ""   # IRSA Role ARN. 비우면 annotation 없음(gateway)

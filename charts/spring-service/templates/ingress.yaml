@@ -13,6 +13,10 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
     alb.ingress.kubernetes.io/tags: Project=freshlink
+    {{- with .Values.ingress.allowedPrefixLists }}
+    # ALB 보안 그룹이 이 접두사 목록(CloudFront 오리진용)에서 오는 요청만 받는다. 인터넷에서 ALB 주소로 바로 오면 막힌다
+    alb.ingress.kubernetes.io/security-group-prefix-lists: {{ join "," . | quote }}
+    {{- end }}
 spec:
   ingressClassName: alb
   rules:
