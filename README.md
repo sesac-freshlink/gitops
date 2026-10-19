@@ -233,7 +233,7 @@ flowchart TB
 | 환경 변수 | 큐 앞부분(`QUEUE_PREFIX`)·프로필은 values의 `env`, DB는 `db.secretName`, `AWS_REGION`·`COGNITO_ISSUER_URI`·`COGNITO_CLIENT_ID`·`COGNITO_USER_POOL_ID`는 root가 모든 서비스에 넣는다 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
 | 이미지 태그 | git 커밋 7자리. `latest` 금지 | ArgoCD는 values의 태그가 바뀌어야 새 버전을 배포한다. `latest`면 변경을 못 알아채고 무엇이 떠 있는지도 모른다 |
 | 오토스케일링 | MVP는 HPA 없이 파드 수 고정 | 노드 2대 용량이 정해져 있다. 노드 그룹 최대 3은 수동 증설용 |
-| gateway만 | `Ingress`(ALB, target-type `ip`) | 외부 요청의 입구. 나머지 4개는 클러스터 안에서만 부른다 |
+| gateway만 | `Ingress`(ALB, target-type `ip`). ALB 보안 그룹은 `ingress.allowedPrefixLists`(CloudFront 오리진용 접두사 목록)에서만 받는다 | 외부 요청의 입구는 CloudFront `/api/*` 하나다. ALB 주소로 바로 오는 요청은 막힌다. 나머지 4개는 클러스터 안에서만 부른다 |
 
 ### 서비스 담당자가 같이 챙길 것
 

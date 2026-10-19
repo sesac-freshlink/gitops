@@ -19,3 +19,6 @@ db:
 
 ingress:
   enabled: true
+  # CloudFront 오리진용 관리형 접두사 목록(com.amazonaws.global.cloudfront.origin-facing, ap-northeast-2). 계정 값이 아니라 리전 공통 ID
+  allowedPrefixLists:
+    - pl-22a6434b
