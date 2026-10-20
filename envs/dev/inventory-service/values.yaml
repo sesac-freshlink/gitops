@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  tag: "0c45fb8"   # CI가 커밋한다 (chore(inventory-service): image <7자리>). 손으로 고치지 않는다
+  tag: "806efc7"   # CI가 커밋한다 (chore(inventory-service): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
