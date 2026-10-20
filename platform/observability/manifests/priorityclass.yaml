@@ -1,0 +1,9 @@
+# 관측성 파드 전부가 쓰는 우선순위. 앱 파드(기본 0)보다 낮다.
+# 노드 자리가 모자라면 스케줄러가 관측성 파드를 먼저 밀어내고 앱 파드를 띄운다(README 자원 표).
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: freshlink-observability
+value: -100
+globalDefault: false
+description: FreshLink 관측성 스택. 앱보다 먼저 밀려난다

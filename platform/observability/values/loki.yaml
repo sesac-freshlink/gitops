@@ -1,0 +1,79 @@
+# Loki 값 (dev·prod 같다). 환경마다 다른 값(S3 버킷 이름, IRSA Role ARN, 리전)은 argocd/apps 차트가
+# root Application(infra)에서 받아 valuesObject로 넣는다. 공개 레포라 계정 값은 여기 적지 않는다.
+deploymentMode: SingleBinary
+
+global:
+  priorityClassName: freshlink-observability
+
+loki:
+  auth_enabled: false   # 팀 하나만 쓴다(테넌트 구분 없음)
+  commonConfig:
+    replication_factor: 1
+  schemaConfig:
+    configs:
+      - from: "2026-10-01"
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  storage:
+    type: s3
+    # bucketNames.chunks·ruler·admin, s3.region은 argocd/apps가 넣는다
+  limits_config:
+    retention_period: 336h   # 14일. S3 수명 주기(infra modules/log-bucket)와 맞춘다
+    volume_enabled: true     # Grafana 로그 탐색 화면의 양 그래프
+  compactor:
+    retention_enabled: true
+    delete_request_store: s3
+  pattern_ingester:
+    enabled: false
+  ruler:
+    enable_api: false
+
+# 단일 바이너리 파드 1개. WAL은 파드 안 임시 디스크에 둔다(볼륨을 두면 금요일마다 EBS를 따로 지워야 한다).
+# 파드가 재시작하면 아직 S3로 올라가지 않은 몇 분 치 로그를 잃을 수 있다. MVP라 받아들인다
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: false
+  # 볼륨 대신 /var/loki(WAL·임시 색인)를 파드 안 빈 디렉터리로 둔다. 루트 파일 시스템은 읽기 전용이다
+  extraVolumes:
+    - name: data
+      emptyDir:
+        sizeLimit: 2Gi
+  extraVolumeMounts:
+    - name: data
+      mountPath: /var/loki
+  resources:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { memory: 1Gi }
+
+# 기본으로 켜지는 것들. 끄지 않으면 메모리를 수 GiB 요청해 노드 2대에 들어가지 않는다
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+gateway:
+  enabled: false
+test:
+  enabled: false
+ruler:
+  enabled: false
+# 알림 규칙을 읽는 사이드카. 규칙을 쓰지 않는다
+sidecar:
+  rules:
+    enabled: false
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+
+serviceAccount:
+  create: true
+  name: loki   # infra IRSA Role(freshlink-<env>-loki-irsa)이 믿는 ServiceAccount 이름

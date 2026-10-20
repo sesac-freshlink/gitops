@@ -30,6 +30,13 @@ ingress:
 serviceAccount:
   roleArn: ""   # IRSA Role ARN. 비우면 annotation 없음(gateway)
 
+# 관측성(할 일 16). argocd/apps 차트가 환경마다 넣는다. 서비스 레포에는 의존성(spring-boot-starter-zipkin)만 있으면 된다
+observability:
+  jsonLogs: true      # stdout에 JSON 한 줄(ECS). Alloy가 읽어 Loki로 보낸다
+  tracing: false      # true면 Zipkin으로 추적을 보낸다(관측성이 켜진 환경만)
+  zipkinEndpoint: http://zipkin.observability:9411/api/v2/spans
+  samplingProbability: "1.0"   # MVP는 요청이 적어 전부 기록
+
 cluster:
   imageRegistry: ""   # <계정>.dkr.ecr.ap-northeast-2.amazonaws.com
   env: {}             # 모든 서비스에 넣는 값 (AWS_REGION, COGNITO_*)

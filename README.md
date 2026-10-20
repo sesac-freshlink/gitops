@@ -9,7 +9,7 @@
 | 기술 | Helm, ArgoCD (App of Apps), Kubernetes, Grafana Alloy·Loki·Prometheus·Zipkin |
 | 환경 | dev, prod 2개. 같은 차트를 쓰고 `envs/<환경>/` 의 값만 다르다 |
 | 브랜치 | `main`만. `main`이 곧 두 클러스터의 목표 상태 |
-| 지금 상태 | 공용 차트, dev·prod values, App of Apps 차트가 있다(할 일 9). 관측성 Application은 초안이다 ([10장](#10-지금-상태와-남은-일)) |
+| 지금 상태 | 공용 차트, dev·prod values, App of Apps 차트가 있다(할 일 9). 관측성 스택은 App of Apps 차트가 만들고 dev에서 켠다(할 일 16, [10장](#10-지금-상태와-남은-일)) |
 
 **목차**
 
@@ -171,17 +171,14 @@ gitops/
 │   └── prod/                        # dev와 같은 파일, 값만 다르다
 │       └── ...
 ├── platform/
-│   └── observability/               # Prometheus·Grafana·Loki·Alloy·Zipkin Application
-│       ├── kube-prometheus-stack.yaml
-│       ├── loki.yaml
-│       ├── alloy.yaml
-│       ├── zipkin.yaml
-│       └── zipkin/                  # Zipkin Deployment·Service 매니페스트
+│   └── observability/               # 관측성 스택 (Application은 argocd/apps가 만든다)
+│       ├── values/                  # kube-prometheus-stack·loki·alloy Helm 값 (dev·prod 같다)
+│       └── manifests/               # 우선순위 클래스, Zipkin, Grafana 대시보드 JSON (kustomize)
 └── argocd/
     └── apps/                        # App of Apps 차트 (dev·prod 같이 쓴다)
         ├── Chart.yaml
-        ├── values.yaml              # 서비스 목록
-        └── templates/               # 서비스 Application 5개, ClusterSecretStore
+        ├── values.yaml              # 서비스 목록, 관측성 켜기(환경별)·차트 버전
+        └── templates/               # 서비스 Application 5개, ClusterSecretStore, 관측성 Application 4개
 ```
 
 root Application은 이 레포에 두지 않는다. infra cluster 묶음(`infra/charts/argocd-root`)이 ArgoCD 설치 직후 등록하면서 환경 이름(`dev`·`prod`)과 계정마다 다른 값(ECR 주소, IRSA Role ARN, Cognito 주소·클라이언트 ID)을 넘긴다. 이 레포는 공개 레포라 계정 값을 적지 않는다.
@@ -202,13 +199,14 @@ flowchart TB
     A --> OS["order-service"]
     A --> LS["logistics-simulator"]
     A --> CSS["ClusterSecretStore<br/>aws-secrets-manager"]
+    A --> OBS["관측성 4개 (환경별로 켬)<br/>observability-base · kube-prometheus-stack · loki · alloy"]
     G & MS & IS & OS & LS -. "차트" .-> C["charts/spring-service"]
     G -. "값" .-> V["envs/dev/gateway/values.yaml"]
 ```
 
 - 서비스 Application 하나 = `charts/spring-service` 차트 + `envs/<환경>/<서비스>/values.yaml` 값 + root가 넘긴 `cluster.*`·`serviceAccount.roleArn`.
 - `ClusterSecretStore` `aws-secrets-manager`도 이 차트가 만든다. 인증 설정 없이 External Secrets Operator 컨트롤러의 IRSA Role로 Secrets Manager를 읽는다(앱 DB 비밀 3개와 토스 키만).
-- 관측성 Application은 할 일 16에서 이 차트에 더한다.
+- 관측성 Application 4개도 이 차트가 만든다(`templates/observability.yaml`). `values.yaml`의 `observability.enabled.<환경>`이 true인 클러스터에만 생기고, Loki 버킷·IRSA Role ARN은 root가 넘긴 `cluster.observability.loki`에서 받는다. 자세한 것은 [platform/observability](platform/observability/README.md).
 - Application에는 finalizer를 두지 않는다. 금요일 삭제 때 ArgoCD 컨트롤러를 먼저 멈추기 때문에 finalizer가 있으면 지우기가 끝나지 않는다. 서비스를 목록에서 빼면 Application만 사라지고 리소스는 남으므로 그때는 손으로 지운다.
 - 동기화 정책은 전부 `automated: { prune: true, selfHeal: true }`. 레포에서 지운 리소스는 클러스터에서도 지워지고, 손으로 바꾼 것은 되돌아간다.
 - 새 서비스를 추가할 때는 `argocd/apps/values.yaml`의 `services`에 한 줄 더한다(9장).
@@ -317,13 +315,13 @@ kubectl -n argocd port-forward svc/argocd-server 8443:443
 kubectl -n observability port-forward svc/kube-prometheus-stack-grafana 3000:80
 ```
 
-금요일 클러스터 삭제 전에는 Prometheus 볼륨(PVC)을 먼저 지운다. EBS CSI 드라이버가 사라진 뒤에는 EBS 볼륨이 남아 요금이 나간다. 이 단계는 infra의 삭제 워크플로 첫 단계에 들어간다.
+금요일 클러스터 삭제 전에는 Prometheus 볼륨(PVC)을 먼저 지운다. EBS CSI 드라이버가 사라진 뒤에는 EBS 볼륨이 남아 요금이 나간다. infra의 삭제 워크플로가 Prometheus 리소스를 지워 파드를 내린 뒤 PVC를 지운다.
 
 ## 10. 지금 상태와 남은 일
 
 | 구분 | 상태 |
 | --- | --- |
-| `platform/observability` | Application 초안 있음 (버전·버킷 이름·Role ARN은 자리표시) |
+| `platform/observability` | dev에서 켬(할 일 16). prod는 dev 확인 뒤 `observability.enabled.prod`로 켠다 |
 | `charts/spring-service` | 있음 (할 일 9) |
 | `envs/dev`, `envs/prod` | 서비스 5개씩 있음. 이미지 태그는 CI가 채운다 |
 | `argocd/apps` | App of Apps 차트 있음. root는 infra가 등록한다 |
@@ -334,9 +332,10 @@ kubectl -n observability port-forward svc/kube-prometheus-stack-grafana 3000:80
 - [x] `envs/dev/<서비스>/values.yaml` 5개, `argocd/apps` 차트(root는 infra가 등록)
 - [x] `.github`의 `spring-build.yml`이 `envs/dev/<서비스>/values.yaml` 태그를 커밋하게 연결
 - [ ] dev ArgoCD에서 서비스 5개 Synced·Healthy, `latest` 태그 없음 확인
-- [ ] 관측성: infra 출력값(Loki 버킷, Loki IRSA Role ARN, gp3 StorageClass)을 채우고 dev에 올리기. Grafana 대시보드 JSON을 이 레포에 두기
+- [x] 관측성: Loki 버킷·IRSA Role ARN을 root 값으로 받기, dev에서 켜기, Grafana 대시보드 JSON을 이 레포에 두기 (할 일 16)
+- [ ] 관측성: prod에서 켜기 (prod infra에 Loki 버킷·IRSA·root 값이 생긴 뒤)
 - [ ] prod root 등록(infra prod cluster 묶음) + `main` 머지 시 태그 승격 워크플로
-- [ ] 외부 Helm 차트·이미지 버전을 설치 직전에 고정 (`targetRevision`, zipkin 이미지 태그)
+- [x] 외부 Helm 차트·이미지 버전 고정 (`argocd/apps/values.yaml` `observability.charts`, Zipkin 3.6.1)
 
 ## 11. 규칙 요약
 

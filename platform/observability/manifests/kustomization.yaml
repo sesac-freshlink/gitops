@@ -1,0 +1,22 @@
+# 관측성 바탕 (ArgoCD Application observability-base, 다른 관측성 앱보다 먼저 동기화).
+# 우선순위 클래스, Zipkin, Grafana 대시보드(ConfigMap). Helm 차트가 아닌 것만 여기 둔다.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+
+resources:
+  - priorityclass.yaml
+  - zipkin.yaml
+
+# dashboards/*.json 을 ConfigMap으로 만든다. Grafana 사이드카가 grafana_dashboard=1 라벨을 보고 읽어 간다.
+# 대시보드를 고치면 Grafana 화면에서 JSON을 내보내 이 파일을 바꾸고 PR로 올린다(화면에서 저장한 것은 파드가 다시 뜨면 사라진다)
+configMapGenerator:
+  - name: grafana-dashboard-freshlink-services
+    files:
+      - dashboards/freshlink-services.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: FreshLink

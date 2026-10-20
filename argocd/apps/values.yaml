@@ -18,3 +18,24 @@ services:
   - inventory-service
   - order-service
   - logistics-simulator
+
+# 관측성 스택(platform/observability, 할 일 16). 환경마다 켠다. prod는 dev에서 확인한 뒤 true로 바꾼다.
+# 켜면 서비스 파드에도 Zipkin 주소가 들어간다(꺼진 환경에서는 서비스가 추적을 보내지 않는다).
+# 환경마다 다른 값(Loki S3 버킷, Loki IRSA Role ARN)은 root가 cluster.observability로 넘긴다.
+observability:
+  enabled:
+    dev: true
+    prod: false
+  namespace: observability
+  # 외부 Helm 차트 버전 고정. 올릴 때는 PR로 한 개씩 올리고 dev에서 확인한다
+  charts:
+    kube-prometheus-stack:
+      repoURL: https://prometheus-community.github.io/helm-charts
+      version: 92.10.1
+    loki:
+      repoURL: https://grafana.github.io/helm-charts
+      version: 7.3.0
+    alloy:
+      repoURL: https://grafana.github.io/helm-charts
+      version: 1.13.1
+  zipkinEndpoint: http://zipkin.observability:9411/api/v2/spans

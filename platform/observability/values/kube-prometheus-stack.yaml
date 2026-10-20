@@ -1,0 +1,123 @@
+# kube-prometheus-stack 값 (dev·prod 같다). 차트 버전은 argocd/apps/values.yaml observability.charts에서 고정한다.
+# 노드 2대(t3.large)에 앱과 같이 들어가게 요청량을 작게 잡고, 모든 파드를 앱보다 낮은 우선순위(freshlink-observability)로 둔다.
+
+# 알림은 쓰지 않는다(Alertmanager 끔). 기록 규칙은 기본 대시보드가 쓰므로 남긴다.
+alertmanager:
+  enabled: false
+
+# EKS는 컨트롤 플레인(컨트롤러 매니저·스케줄러·etcd)을 AWS가 관리해 수집할 수 없다. kube-proxy 지표는 노드 127.0.0.1에만 열린다.
+# 켜 두면 Prometheus 대상 화면에 늘 '꺼짐'으로 보이므로 끈다.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheusOperator:
+  priorityClassName: freshlink-observability
+  # 검증 웹훅은 인증서를 만드는 Job(Helm hook)이 필요해 ArgoCD 동기화를 복잡하게 만든다. 끈다
+  admissionWebhooks:
+    enabled: false
+  tls:
+    enabled: false
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+prometheus:
+  prometheusSpec:
+    priorityClassName: freshlink-observability
+    retention: 3d
+    retentionSize: 8GB   # 볼륨(10Gi)이 차기 전에 오래된 것부터 지운다
+    # 다른 네임스페이스(freshlink)의 ServiceMonitor도 라벨 조건 없이 수집한다
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests: { cpu: 200m, memory: 768Mi }
+      limits: { memory: 1536Mi }
+    # 금요일 클러스터 삭제 때 이 볼륨도 지운다(infra dev-cluster.yml). 그래서 지표는 그 주 것만 남는다
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests: { storage: 10Gi }
+
+kube-state-metrics:
+  priorityClassName: freshlink-observability
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 192Mi }
+
+prometheus-node-exporter:
+  priorityClassName: freshlink-observability
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { memory: 64Mi }
+
+grafana:
+  priorityClassName: freshlink-observability
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { memory: 512Mi }
+  # 대시보드·데이터 소스는 이 레포에 코드로 둔다. Grafana 자체에는 저장하지 않는다(볼륨 없음)
+  persistence:
+    enabled: false
+  defaultDashboardsTimezone: Asia/Seoul
+  # Grafana는 밖으로 열지 않고 kubectl port-forward로만 연다(클러스터 관리자만 가능).
+  # 그래서 로그인 없이 들어가게 한다. 비밀번호를 공개 레포에 적지 않아도 되고,
+  # ArgoCD가 동기화할 때마다 무작위 비밀번호가 바뀌는 문제도 없다
+  # 비밀번호를 비워 두면 차트가 렌더링할 때마다 무작위 값을 새로 만들어 ArgoCD가 늘 '바뀜'으로 보고 Grafana를 재시작한다.
+  # 로그인 화면을 끄므로 이 값으로 들어올 길은 port-forward한 사람뿐이다. 고정 값으로 둔다
+  adminPassword: freshlink-port-forward-only
+  testFramework:
+    enabled: false   # helm test용 파드. ArgoCD에서는 쓰지 않는다
+  grafana.ini:
+    auth:
+      disable_login_form: true
+    auth.anonymous:
+      enabled: true
+      org_role: Admin
+  sidecar:
+    datasources:
+      alertmanager:
+        enabled: false   # Alertmanager를 끄므로 데이터 소스도 뺀다
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: observability   # platform/observability/manifests/dashboards 의 ConfigMap
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+  additionalDataSources:
+    - name: Loki
+      uid: loki
+      type: loki
+      url: http://loki.observability:3100
+      jsonData:
+        maxLines: 1000
+        derivedFields:
+          # 로그 줄의 traceId를 누르면 Zipkin 추적 화면으로 넘어간다
+          - name: traceId
+            matcherRegex: '"traceId":"(\w+)"'
+            datasourceUid: zipkin
+            url: "$${__value.raw}"
+    - name: Zipkin
+      uid: zipkin
+      type: zipkin
+      url: http://zipkin.observability:9411
+      jsonData:
+        # 추적 화면에서 같은 traceId 로그로 넘어간다
+        tracesToLogsV2:
+          datasourceUid: loki
+          filterByTraceID: true
+          spanStartTimeShift: -5m
+          spanEndTimeShift: 5m
+          customQuery: true
+          query: '{namespace="freshlink"} |= "$${__trace.traceId}"'
