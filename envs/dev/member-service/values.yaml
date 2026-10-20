@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  tag: "75a9316"   # CI가 커밋한다 (chore(member-service): image <7자리>). 손으로 고치지 않는다
+  tag: "ad604e9"   # CI가 커밋한다 (chore(member-service): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
