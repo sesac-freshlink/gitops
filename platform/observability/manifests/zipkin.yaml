@@ -1,0 +1,52 @@
+# Zipkin 추적 서버. 메모리 저장이라 파드가 재시작하면 추적 기록이 사라진다(MVP는 당일 확인용).
+# 서비스는 http://zipkin.observability:9411/api/v2/spans 로 보낸다(gitops 차트 spring-service가 환경 변수로 넣는다)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zipkin
+  labels: { app.kubernetes.io/name: zipkin }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: zipkin }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: zipkin }
+    spec:
+      priorityClassName: freshlink-observability
+      containers:
+        - name: zipkin
+          image: openzipkin/zipkin:3.6.1
+          ports:
+            - name: http
+              containerPort: 9411
+          env:
+            - name: STORAGE_TYPE
+              value: mem
+            - name: MEM_MAX_SPANS   # 메모리에 두는 구간 수 상한(기본 50만). 메모리 상한 안에 들게 줄인다
+              value: "100000"
+            - name: JAVA_OPTS
+              value: -XX:MaxRAMPercentage=70
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { memory: 768Mi }
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zipkin
+  labels: { app.kubernetes.io/name: zipkin }
+spec:
+  selector: { app.kubernetes.io/name: zipkin }
+  ports:
+    - name: http
+      port: 9411
+      targetPort: http

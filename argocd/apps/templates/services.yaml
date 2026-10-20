@@ -23,6 +23,10 @@ spec:
             {{- toYaml $.Values.cluster.env | nindent 12 }}
         serviceAccount:
           roleArn: {{ index $.Values.cluster.irsaRoleArns . | default "" | quote }}
+        # 관측성이 켜진 환경이면 Zipkin으로 추적을 보낸다(templates/observability.yaml)
+        observability:
+          tracing: {{ index $.Values.observability.enabled $.Values.env | default false }}
+          zipkinEndpoint: {{ $.Values.observability.zipkinEndpoint | quote }}
   destination:
     server: https://kubernetes.default.svc
     namespace: {{ $.Values.namespace }}

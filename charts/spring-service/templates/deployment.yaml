@@ -45,6 +45,23 @@ spec:
             {{- end }}
             - name: SERVER_PORT
               value: "8080"
+            {{- with .Values.observability }}
+            {{- if .jsonLogs }}
+            - name: LOGGING_STRUCTURED_FORMAT_CONSOLE   # JSON 한 줄 로그(traceId·spanId 포함)
+              value: ecs
+            {{- end }}
+            # 응답 시간 p95를 구하려고 요청 시간 히스토그램을 내보낸다
+            - name: MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS
+              value: "true"
+            - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+              value: {{ .samplingProbability | quote }}
+            - name: MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENABLED
+              value: {{ .tracing | toString | quote }}
+            {{- if .tracing }}
+            - name: MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT
+              value: {{ .zipkinEndpoint | quote }}
+            {{- end }}
+            {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}

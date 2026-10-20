@@ -73,7 +73,7 @@ README 5장이 진실. 요약:
 ```
 charts/spring-service/        # 서비스 5개 공용 차트
 envs/{dev,prod}/<svc>/values.yaml  # gateway, member-service, inventory-service, order-service, logistics-simulator
-platform/observability/       # 관측성 스택 Application
+platform/observability/       # 관측성 스택 값(values/)·매니페스트(manifests/). Application은 argocd/apps가 만든다
 argocd/apps/                  # App of Apps 차트 (dev·prod 공용, root는 infra가 등록)
 ```
 
