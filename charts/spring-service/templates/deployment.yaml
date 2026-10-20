@@ -49,10 +49,17 @@ spec:
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
-          {{- if .Values.db.secretName }}
+          # 비밀이 아직 동기화되지 않았으면 파드는 Secret이 생길 때까지 기다렸다가 뜬다(optional로 두면 키 없이 떠 버린다)
+          {{- if or .Values.db.secretName .Values.toss.secretName }}
           envFrom:
+            {{- if .Values.db.secretName }}
             - secretRef:
                 name: {{ include "spring-service.name" . }}-db
+            {{- end }}
+            {{- if .Values.toss.secretName }}
+            - secretRef:
+                name: {{ include "spring-service.name" . }}-toss
+            {{- end }}
           {{- end }}
           readinessProbe:
             httpGet:

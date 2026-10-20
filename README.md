@@ -228,7 +228,7 @@ flowchart TB
 | 리소스 | CPU 요청 150m, CPU 상한 없음. 메모리 요청·상한은 8장 | 노드 2대에 관측성까지 들어가게 맞춘 값. 기동할 때는 노드의 남는 CPU를 빌려 쓴다 |
 | 배치 | `topologySpreadConstraints`로 노드 간 분산 | 같은 서비스 파드 2개가 서로 다른 AZ의 노드에 뜬다 |
 | ServiceAccount | 이름 = 레포 이름, IRSA annotation으로 `freshlink-<env>-<레포>-irsa` 연결 | 서비스마다 자기 큐에만 권한이 있다. 파드에 AWS 키를 넣지 않는다 |
-| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다. values의 `db.secretName`을 채우면 `DB_URL`·`DB_USERNAME`·`DB_PASSWORD`가 환경 변수로 들어간다 | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
+| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다. values의 `db.secretName`을 채우면 `DB_URL`·`DB_USERNAME`·`DB_PASSWORD`가, `toss.secretName`을 채우면(order-service만) 토스 `secretKey`만 `TOSS_SECRET_KEY`로 환경 변수에 들어간다 | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
 | 지표 | `ServiceMonitor`가 8080의 `/actuator/prometheus`를 수집. Prometheus Operator가 설치된 클러스터에서만 만든다(없을 때 만들면 동기화 실패) | 서비스를 추가해도 Prometheus 설정을 손댈 필요가 없다 |
 | 환경 변수 | 큐 앞부분(`QUEUE_PREFIX`)·프로필은 values의 `env`, DB는 `db.secretName`, `AWS_REGION`·`COGNITO_ISSUER_URI`·`COGNITO_CLIENT_ID`·`COGNITO_USER_POOL_ID`는 root가 모든 서비스에 넣는다 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
 | 이미지 태그 | git 커밋 7자리. `latest` 금지 | ArgoCD는 values의 태그가 바뀌어야 새 버전을 배포한다. `latest`면 변경을 못 알아채고 무엇이 떠 있는지도 모른다 |
