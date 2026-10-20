@@ -22,6 +22,11 @@ env: {}
 db:
   secretName: ""
 
+# 토스 키 비밀(Secrets Manager 이름, JSON clientKey·secretKey). order-service만 켠다. 비우면 토스 키 없음
+# secretKey만 TOSS_SECRET_KEY로 들어간다. clientKey는 프론트 빌드용이라 파드에 넣지 않는다
+toss:
+  secretName: ""
+
 # gateway만 켠다. ALB(target-type ip)가 /api 를 이 서비스로 넘긴다
 ingress:
   enabled: false

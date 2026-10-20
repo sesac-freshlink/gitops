@@ -18,5 +18,9 @@ env:
 db:
   secretName: "freshlink-prod-order-db"
 
+# 토스 시크릿 키 → TOSS_SECRET_KEY. 값은 infra scripts/set-toss-key.ps1 -Env prod로 넣는다(값이 없으면 파드가 뜨지 않고 기다린다)
+toss:
+  secretName: "freshlink-prod-toss"
+
 ingress:
   enabled: false
