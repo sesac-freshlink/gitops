@@ -321,7 +321,7 @@ kubectl -n observability port-forward svc/kube-prometheus-stack-grafana 3000:80
 
 | 구분 | 상태 |
 | --- | --- |
-| `platform/observability` | dev에서 켬(할 일 16). prod는 dev 확인 뒤 `observability.enabled.prod`로 켠다 |
+| `platform/observability` | dev·prod 모두 켬(할 일 16, prod는 10/28 release 때 `observability.enabled.prod`로 켰다) |
 | `charts/spring-service` | 있음 (할 일 9) |
 | `envs/dev`, `envs/prod` | 서비스 5개씩 있음. 이미지 태그는 CI가 채운다 |
 | `argocd/apps` | App of Apps 차트 있음. root는 infra가 등록한다 |
