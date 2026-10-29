@@ -17,6 +17,14 @@ env:
 db:
   secretName: ""
 
+# BFF(10/28): bff 클라이언트 시크릿 → COGNITO_CLIENT_SECRET. 비밀은 infra envs/dev/persistent가 만든다.
+# IRSA(AdminInitiateAuth) Role 주석은 infra root가 serviceAccount.roleArn으로 넣는다(freshlink-dev-gateway-irsa)
+extraSecrets:
+  - name: cognito
+    secretName: "freshlink-dev/gateway/cognito"
+    env:
+      COGNITO_CLIENT_SECRET: clientSecret
+
 ingress:
   enabled: true
   # CloudFront 오리진용 관리형 접두사 목록(com.amazonaws.global.cloudfront.origin-facing, ap-northeast-2). 계정 값이 아니라 리전 공통 ID
