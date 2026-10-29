@@ -27,13 +27,23 @@ db:
 toss:
   secretName: ""
 
+# 그 밖의 비밀(Secrets Manager JSON)에서 키 몇 개를 골라 환경 변수로 넣는다. 항목마다 ExternalSecret 하나(<서비스>-<name>)
+# 예) gateway BFF: bff 클라이언트 시크릿 → COGNITO_CLIENT_SECRET
+#   extraSecrets:
+#     - name: cognito                                  # Kubernetes Secret 이름 gateway-cognito
+#       secretName: freshlink-dev/gateway/cognito      # Secrets Manager 이름
+#       env:
+#         COGNITO_CLIENT_SECRET: clientSecret          # 환경 변수: JSON 키
+# ESO가 읽을 수 있는 비밀만 된다(infra envs/<env>/cluster external-secrets 정책에 ARN이 있어야 한다)
+extraSecrets: []
+
 # gateway만 켠다. ALB(target-type ip)가 /api 를 이 서비스로 넘긴다
 ingress:
   enabled: false
   allowedPrefixLists: []   # 비우면 ALB가 인터넷 전체(0.0.0.0/0)에서 받는다. CloudFront 오리진용 목록 ID를 넣으면 CloudFront만 받는다
 
 serviceAccount:
-  roleArn: ""   # IRSA Role ARN. 비우면 annotation 없음(gateway)
+  roleArn: ""   # IRSA Role ARN. 비우면 annotation 없음. 값은 infra root(cluster.irsaRoleArns)가 넣는다(gitops는 공개라 계정 값을 적지 않는다)
 
 # 관측성(할 일 16). argocd/apps 차트가 환경마다 넣는다. 서비스 레포에는 의존성(spring-boot-starter-zipkin)만 있으면 된다
 observability:

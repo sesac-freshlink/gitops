@@ -205,7 +205,7 @@ flowchart TB
 ```
 
 - 서비스 Application 하나 = `charts/spring-service` 차트 + `envs/<환경>/<서비스>/values.yaml` 값 + root가 넘긴 `cluster.*`·`serviceAccount.roleArn`.
-- `ClusterSecretStore` `aws-secrets-manager`도 이 차트가 만든다. 인증 설정 없이 External Secrets Operator 컨트롤러의 IRSA Role로 Secrets Manager를 읽는다(앱 DB 비밀 3개와 토스 키만).
+- `ClusterSecretStore` `aws-secrets-manager`도 이 차트가 만든다. 인증 설정 없이 External Secrets Operator 컨트롤러의 IRSA Role로 Secrets Manager를 읽는다(앱 DB 비밀 3개, 토스 키, gateway bff 클라이언트 비밀만).
 - 관측성 Application 4개도 이 차트가 만든다(`templates/observability.yaml`). `values.yaml`의 `observability.enabled.<환경>`이 true인 클러스터에만 생기고, Loki 버킷·IRSA Role ARN은 root가 넘긴 `cluster.observability.loki`에서 받는다. 자세한 것은 [platform/observability](platform/observability/README.md).
 - Application에는 finalizer를 두지 않는다. 금요일 삭제 때 ArgoCD 컨트롤러를 먼저 멈추기 때문에 finalizer가 있으면 지우기가 끝나지 않는다. 서비스를 목록에서 빼면 Application만 사라지고 리소스는 남으므로 그때는 손으로 지운다.
 - 동기화 정책은 전부 `automated: { prune: true, selfHeal: true }`. 레포에서 지운 리소스는 클러스터에서도 지워지고, 손으로 바꾼 것은 되돌아간다.
@@ -226,9 +226,9 @@ flowchart TB
 | 리소스 | CPU 요청 150m, CPU 상한 없음. 메모리 요청·상한은 8장 | 노드 2대에 관측성까지 들어가게 맞춘 값. 기동할 때는 노드의 남는 CPU를 빌려 쓴다 |
 | 배치 | `topologySpreadConstraints`로 노드 간 분산 | 같은 서비스 파드 2개가 서로 다른 AZ의 노드에 뜬다 |
 | ServiceAccount | 이름 = 레포 이름, IRSA annotation으로 `freshlink-<env>-<레포>-irsa` 연결 | 서비스마다 자기 큐에만 권한이 있다. 파드에 AWS 키를 넣지 않는다 |
-| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다. values의 `db.secretName`을 채우면 `DB_URL`·`DB_USERNAME`·`DB_PASSWORD`가, `toss.secretName`을 채우면(order-service만) 토스 `secretKey`만 `TOSS_SECRET_KEY`로 환경 변수에 들어간다 | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
+| 비밀값 | `ExternalSecret`으로 AWS Secrets Manager에서 받아 Kubernetes Secret을 만든다. values의 `db.secretName`을 채우면 `DB_URL`·`DB_USERNAME`·`DB_PASSWORD`가, `toss.secretName`을 채우면(order-service만) 토스 `secretKey`만 `TOSS_SECRET_KEY`로, `extraSecrets`에 적으면 고른 키만 적은 이름의 환경 변수로 들어간다(gateway의 `COGNITO_CLIENT_SECRET`) | DB 비밀번호, 토스 키 같은 값은 이 레포에 절대 쓰지 않는다 |
 | 지표 | `ServiceMonitor`가 8080의 `/actuator/prometheus`를 수집. Prometheus Operator가 설치된 클러스터에서만 만든다(없을 때 만들면 동기화 실패) | 서비스를 추가해도 Prometheus 설정을 손댈 필요가 없다 |
-| 환경 변수 | 큐 앞부분(`QUEUE_PREFIX`)·프로필은 values의 `env`, DB는 `db.secretName`, `AWS_REGION`·`COGNITO_ISSUER_URI`·`COGNITO_CLIENT_ID`·`COGNITO_USER_POOL_ID`는 root가 모든 서비스에 넣는다 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
+| 환경 변수 | 큐 앞부분(`QUEUE_PREFIX`)·프로필은 values의 `env`, DB는 `db.secretName`, `AWS_REGION`·`COGNITO_ISSUER_URI`·`COGNITO_CLIENT_ID`·`COGNITO_USER_POOL_ID`와 BFF용 `COGNITO_BFF_CLIENT_ID`·`COGNITO_DOMAIN_URL`·`FRONTEND_URL`은 root가 모든 서비스에 넣는다 | 같은 이미지가 dev·prod 어디서든 돈다. 코드에 큐 이름·DB 주소를 박지 않는다 |
 | 이미지 태그 | git 커밋 7자리. `latest` 금지 | ArgoCD는 values의 태그가 바뀌어야 새 버전을 배포한다. `latest`면 변경을 못 알아채고 무엇이 떠 있는지도 모른다 |
 | 오토스케일링 | MVP는 HPA 없이 파드 수 고정 | 노드 2대 용량이 정해져 있다. 노드 그룹 최대 3은 수동 증설용 |
 | gateway만 | `Ingress`(ALB, target-type `ip`). ALB 보안 그룹은 `ingress.allowedPrefixLists`(CloudFront 오리진용 접두사 목록)에서만 받는다 | 외부 요청의 입구는 CloudFront `/api/*` 하나다. ALB 주소로 바로 오는 요청은 막힌다. 나머지 4개는 클러스터 안에서만 부른다 |
