@@ -1,5 +1,5 @@
 # member-service (dev). 키 구조는 envs/prod/member-service/values.yaml과 같고 값만 다르다.
-replicaCount: 1
+replicaCount: 2
 
 image:
   tag: "7b80628"   # CI가 커밋한다 (chore(member-service): image <7자리>). 손으로 고치지 않는다
