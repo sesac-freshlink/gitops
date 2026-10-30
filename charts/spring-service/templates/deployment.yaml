@@ -82,6 +82,12 @@ spec:
                 name: {{ include "spring-service.name" $ }}-{{ .name }}
             {{- end }}
           {{- end }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
