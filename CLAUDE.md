@@ -11,13 +11,13 @@
 | `README.md` | 역할(1장), 전체 그림(2장), dev·prod(3장), 배포·승격·롤백(4장), 폴더 구조(5장), App of Apps(6장), 공용 차트 규칙(7장), 파드 계획(8장), 자주 하는 작업(9장), 남은 일(10장) |
 | `platform/observability/README.md` | Prometheus·Grafana·Loki·Alloy·Zipkin 구성 |
 | `.github` 레포 `CONTRIBUTING.md` | 브랜치·커밋·PR 규칙 |
-| `.github` 레포 `docs/ai-agents.md` | 인프라 에이전트 플러그인(`freshlink-infra`) 설치·사용법 (사람용) |
+| `.github` 레포 `docs/팀원-가이드/ai-agents.md` | 인프라 에이전트 플러그인(`freshlink-infra`) 설치·사용법 (사람용) |
 
 이 `CLAUDE.md`는 AI 작업 규칙만 담는다. 위 문서와 겹치는 사실은 위 문서가 진실.
 
 ## 에이전트
 
-인프라 에이전트 7개와 작업 순서는 `freshlink-infra` 플러그인에 있다 (`.github` 레포에서 배포). 새 기능 요청이면 `infra-pipeline` 스킬을 먼저 읽고 그 순서대로 서브에이전트를 쓴다. 플러그인이 설치되어 있지 않으면 사용자에게 `.github` 레포 `docs/ai-agents.md`의 설치 명령을 안내한다.
+인프라 에이전트 7개와 작업 순서는 `freshlink-infra` 플러그인에 있다 (`.github` 레포에서 배포). 새 기능 요청이면 `infra-pipeline` 스킬을 먼저 읽고 그 순서대로 서브에이전트를 쓴다. 플러그인이 설치되어 있지 않으면 사용자에게 `.github` 레포 `docs/팀원-가이드/ai-agents.md`의 설치 명령을 안내한다.
 
 ## Communication Style (Caveman Mode)
 Respond like a caveman. No articles, no filler words, no pleasantries, no yapping. Short. Direct. Grunt-level brevity. Code speaks for itself. If asked for code, output ONLY code. Minimize token usage absolutely.
@@ -59,7 +59,7 @@ README 3·4장이 진실. 요약:
 | 큐 | `dev-inventory-commands.fifo` 등 (+ 개발자별 큐) | `prod-inventory-commands.fifo` 등 |
 | 클러스터 | 평일 09:00~21:00, 금 21:00 삭제·월 08:40 생성 | 평소 꺼 둔다. 릴리스 확인·리허설·시연 날만 켠다. 꺼진 동안에도 커밋은 쌓이고, 켜면 ArgoCD가 마지막 상태로 맞춘다 |
 
-- 큐 이름 앞부분은 환경 변수 `QUEUE_PREFIX`로 넣는다(정확한 형식은 `.github` 레포 `docs/jina/할일-목록.md` 3·4번에서 정함).
+- 큐 이름 앞부분은 환경 변수 `QUEUE_PREFIX`로 넣는다(정확한 형식은 `.github` 레포 `docs/할일/김진아-할일-목록.md` 3·4번에서 정함).
 - ECR과 서비스 CI가 맡는 GitHub OIDC Role은 두 환경 공용이다. 그래서 prod가 dev 이미지를 그대로 받는다. `dev` 브랜치가 맡을 수 있는 Role에는 prod 쓰기 권한(prod 버킷 쓰기, prod terraform 실행 등)을 주지 않는다(Role 개수·권한 범위는 할 일 9·10에서 정함).
 - AWS 쪽 구조(`global`, `envs/{dev,prod}/{persistent,cluster}`, state 키 5개)는 `infra` 레포 `CLAUDE.md`를 본다.
 - 팀원 IAM 그룹 `freshlink-developers`는 dev 리소스만 쓴다. prod는 읽기 권한도 없다.
