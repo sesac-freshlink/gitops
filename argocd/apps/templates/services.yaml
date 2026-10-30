@@ -1,4 +1,6 @@
+{{- $skip := index .Values.notYetDeployed .Values.env | default list }}
 {{- range .Values.services }}
+{{- if not (has . $skip) }}
 ---
 # 서비스 하나 = 공용 차트 charts/spring-service + envs/<env>/<서비스>/values.yaml
 apiVersion: argoproj.io/v1alpha1
@@ -36,4 +38,5 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+{{- end }}
 {{- end }}
