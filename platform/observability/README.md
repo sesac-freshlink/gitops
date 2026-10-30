@@ -1,7 +1,7 @@
 # platform/observability
 
 > 관측성 스택(I-03, 할 일 16). **지표는 Prometheus, 로그는 Loki, 추적은 Zipkin, 화면은 Grafana 하나**로 본다. 전부 ArgoCD가 `observability` 네임스페이스에 설치한다.
-> 결정 이유: [기술스택과 선택이유.md](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%EC%88%A0%EC%8A%A4%ED%83%9D%EA%B3%BC%20%EC%84%A0%ED%83%9D%EC%9D%B4%EC%9C%A0.md) 3-5 · 구조도의 ⑬·청록색 파드: [docs/architecture](https://github.com/sesac-freshlink/.github/tree/main/docs/architecture)
+> 결정 이유: [기획/기술스택과-선택이유.md](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%ED%9A%8D/%EA%B8%B0%EC%88%A0%EC%8A%A4%ED%83%9D%EA%B3%BC-%EC%84%A0%ED%83%9D%EC%9D%B4%EC%9C%A0.md) 3-5 · 구조도의 ⑬·청록색 파드: [docs/기획/architecture](https://github.com/sesac-freshlink/.github/tree/main/docs/기획/architecture)
 
 ## 1. 어떻게 올라가나
 

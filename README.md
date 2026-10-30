@@ -352,9 +352,9 @@ kubectl -n observability port-forward svc/kube-prometheus-stack-grafana 3000:80
 
 | 문서 | 내용 |
 | --- | --- |
-| [기획안 및 설계도](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%ED%9A%8D%EC%95%88-%EB%B0%8F-%EC%84%A4%EA%B3%84%EB%8F%84.md) | 인프라 산정(파드 목록·노드 용량), 7장 "이 구성에서 꼭 챙길 것" |
-| [기술스택과 선택이유](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%EC%88%A0%EC%8A%A4%ED%83%9D%EA%B3%BC%20%EC%84%A0%ED%83%9D%EC%9D%B4%EC%9C%A0.md) | 관측성 스택(3-5), CI로 GitHub Actions를 고른 이유(4장) |
-| [아키텍처 구조도](https://github.com/sesac-freshlink/.github/blob/main/docs/architecture/README.md) | 번호별 흐름. ⑩ CI → gitops, ⑪ ArgoCD ← gitops |
-| [git 계획](https://github.com/sesac-freshlink/.github/blob/main/docs/git-%EA%B3%84%ED%9A%8D.md) | 브랜치 규칙, 이름 규칙, 이미지 태그 규칙 |
+| [기획안 및 설계도](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%ED%9A%8D/%EA%B8%B0%ED%9A%8D%EC%95%88-%EB%B0%8F-%EC%84%A4%EA%B3%84%EB%8F%84.md) | 인프라 산정(파드 목록·노드 용량), 7장 "이 구성에서 꼭 챙길 것" |
+| [기술스택과 선택이유](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%ED%9A%8D/%EA%B8%B0%EC%88%A0%EC%8A%A4%ED%83%9D%EA%B3%BC-%EC%84%A0%ED%83%9D%EC%9D%B4%EC%9C%A0.md) | 관측성 스택(3-5), CI로 GitHub Actions를 고른 이유(4장) |
+| [아키텍처 구조도](https://github.com/sesac-freshlink/.github/blob/main/docs/기획/architecture/README.md) | 번호별 흐름. ⑩ CI → gitops, ⑪ ArgoCD ← gitops |
+| [git 계획](https://github.com/sesac-freshlink/.github/blob/main/docs/%EA%B8%B0%ED%9A%8D/git-%EA%B3%84%ED%9A%8D.md) | 브랜치 규칙, 이름 규칙, 이미지 태그 규칙 |
 | [infra README](https://github.com/sesac-freshlink/infra) | AWS 리소스, 켜고 끄는 일정, ArgoCD 설치 |
 | [platform/observability](platform/observability/README.md) | 관측성 스택 구성·자원·접속 |
