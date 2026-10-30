@@ -2,7 +2,7 @@
 replicaCount: 1   # 점주 매출 SSE: 연결된 파드에만 이벤트가 가서 1개로 둔다. 늘릴 때는 Redis Pub/Sub을 먼저 붙인다 (기술스택 3-8)
 
 image:
-  tag: "80eefe6"   # CI가 커밋한다 (chore(order-service): image <7자리>). 손으로 고치지 않는다
+  tag: "ea8b101"   # CI가 커밋한다 (chore(order-service): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
