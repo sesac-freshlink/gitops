@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  tag: "eb09731"   # CI가 커밋한다 (chore(gateway): image <7자리>). 손으로 고치지 않는다
+  tag: "00970e6"   # CI가 커밋한다 (chore(gateway): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
