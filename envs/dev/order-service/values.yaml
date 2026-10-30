@@ -2,7 +2,7 @@
 replicaCount: 2
 
 image:
-  tag: "b38a2c1"   # CI가 커밋한다 (chore(order-service): image <7자리>). 손으로 고치지 않는다
+  tag: "27e40ea"   # CI가 커밋한다 (chore(order-service): image <7자리>). 손으로 고치지 않는다
 
 resources:
   requests:
