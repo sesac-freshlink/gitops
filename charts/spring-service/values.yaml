@@ -56,12 +56,18 @@ cluster:
   imageRegistry: ""   # <계정>.dkr.ecr.ap-northeast-2.amazonaws.com
   env: {}             # 모든 서비스에 넣는 값 (AWS_REGION, COGNITO_*)
 
+# 기동 확인(startup)이 통과할 때까지 readiness·liveness는 돌지 않는다.
+# 아침에 노드 2대에서 파드가 한꺼번에 뜨면 CPU를 나눠 써 기동이 80~134초 걸린다(10/30 dev).
+# 예전처럼 liveness를 90초부터 돌리면 기동 중인 파드를 죽었다고 보고 재시작했다. 그래서 startup에 최대 300초를 준다.
 probes:
+  startup:
+    periodSeconds: 10
+    failureThreshold: 30      # 10초 × 30 = 300초 안에 뜨면 된다
   readiness:
-    initialDelaySeconds: 20
+    initialDelaySeconds: 0
     periodSeconds: 10
     failureThreshold: 6
   liveness:
-    initialDelaySeconds: 90   # 기동 중인 파드를 죽었다고 보고 재시작하지 않게 readiness보다 늦게
+    initialDelaySeconds: 0    # startup이 통과한 뒤부터 돈다
     periodSeconds: 20
     failureThreshold: 3
