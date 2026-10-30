@@ -54,7 +54,7 @@ FreshLink의 인프라 코드는 레포 두 개로 나뉜다. 바뀌는 주기�
 ```mermaid
 flowchart LR
     subgraph GH["GitHub (sesac-freshlink)"]
-        SVC["서비스 레포 5개<br/>gateway · member · inventory<br/>order · logistics-simulator"]
+        SVC["서비스 레포 6개<br/>gateway · member · inventory<br/>order · logistics-simulator · notification"]
         GO["gitops<br/>(이 레포)"]
         INFRA["infra<br/>(Terraform)"]
     end
@@ -167,7 +167,8 @@ gitops/
 │   │   ├── member-service/values.yaml
 │   │   ├── inventory-service/values.yaml
 │   │   ├── order-service/values.yaml
-│   │   └── logistics-simulator/values.yaml
+│   │   ├── logistics-simulator/values.yaml
+│   │   └── notification-service/values.yaml
 │   └── prod/                        # dev와 같은 파일, 값만 다르다
 │       └── ...
 ├── platform/
@@ -255,9 +256,10 @@ dev·prod 같은 값이다. 근거는 기획안 인프라 산정 3-1.
 | inventory-service | 2 | 150m | 640Mi / 1Gi | 재고 조회·유통기한 스케줄러 (ShedLock) |
 | order-service | 2 | 150m | 512Mi / 768Mi | 결제·미결제 스케줄러 (ShedLock) |
 | logistics-simulator | 1 | 100m | 256Mi / 512Mi | 시연 때만 사용 |
-| **앱 합계** | **8** | **약 1.15 vCPU** | **약 4.1 GiB** | |
+| notification-service | 1 | 100m | 448Mi / 640Mi | 화면 알림 SSE. 연결이 파드 메모리에 있어 1개 (10/30) |
+| **앱 합계** | **9** | **약 1.25 vCPU** | **약 4.5 GiB** | |
 
-시스템(ArgoCD, LB Controller 등)과 관측성까지 합치면 CPU 요청 약 3.05 vCPU, 메모리 약 9 GiB로 t3.large 2대 할당 가능량의 **CPU 79%, 메모리 64%** 다. 남는 CPU 약 0.8 vCPU가 롤링 배포 때 새 파드가 뜰 자리다. 앱 CPU 요청을 다시 250m로 올리면 이 여유가 사라져 새 파드가 Pending에 걸린다.
+시스템(ArgoCD, LB Controller 등)과 관측성까지 합치면 CPU 요청 약 3.15 vCPU, 메모리 약 9.4 GiB로 t3.large 2대 할당 가능량의 **CPU 82%, 메모리 66%** 다. 남는 CPU 약 0.7 vCPU가 롤링 배포 때 새 파드가 뜰 자리다. 앱 CPU 요청을 다시 250m로 올리면 이 여유가 사라져 새 파드가 Pending에 걸린다.
 
 관측성 스택(지표 Prometheus, 로그 Alloy → Loki → S3, 추적 Zipkin, 화면 Grafana)의 구성·자원·접속 방법은 [`platform/observability`](platform/observability/README.md)에 있다. dev에서 먼저 올리고, 확인되면 같은 Application을 prod에도 등록한다.
 
@@ -280,7 +282,7 @@ prod에도 같은 변경이 필요하면 `envs/prod/...`도 같은 커밋에서 
 
 ```bash
 helm lint charts/spring-service
-for svc in gateway member-service inventory-service order-service logistics-simulator; do
+for svc in gateway member-service inventory-service order-service logistics-simulator notification-service; do
   for env in dev prod; do
     helm template $svc charts/spring-service -f envs/$env/$svc/values.yaml \
       | kubeconform -strict -ignore-missing-schemas -summary
@@ -295,7 +297,7 @@ diff <(yq 'paths | join(".")' envs/dev/order-service/values.yaml) \
 
 1. `infra`에서 ECR 리포지토리와 IRSA Role을 만든다(IRSA Role ARN을 root에 넘기는 목록도 infra `envs/<env>/cluster/helm.tf`에 더한다).
 2. `envs/dev/<새 서비스>/values.yaml`, `envs/prod/<새 서비스>/values.yaml`을 기존 파일에서 복사한다.
-3. `argocd/apps/values.yaml`의 `services`에 이름을 더한다.
+3. `argocd/apps/values.yaml`의 `services`에 이름을 더한다. 아직 그 환경 태그가 비어 있으면(prod는 첫 release 전) 같은 파일 `notYetDeployed.<env>`에도 넣는다. 첫 release로 CI가 `envs/prod/<서비스>/values.yaml`에 태그를 넣은 뒤 `notYetDeployed.prod`에서 지운다.
 4. 서비스 레포에 `.github/workflows/ci.yml`(재사용 워크플로 `spring-build.yml` 호출부)을 넣는다.
 
 ### 클러스터를 새로 만든 뒤 (월요일, 또는 prod를 켤 때)

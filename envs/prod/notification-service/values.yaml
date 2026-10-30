@@ -1,0 +1,22 @@
+# notification-service (prod). 키 구조는 envs/dev/notification-service/values.yaml과 같고 값만 다르다.
+replicaCount: 1   # 화면 알림 SSE: 연결된 파드에만 이벤트가 가서 1개로 둔다. 늘릴 때는 Redis Pub/Sub을 먼저 붙인다 (notification-service README 3장)
+
+image:
+  tag: ""   # CI가 커밋한다 (chore(notification-service): image <7자리>). 손으로 고치지 않는다
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 448Mi
+  limits:
+    memory: 640Mi
+
+env:
+  SPRING_PROFILES_ACTIVE: prod
+  QUEUE_PREFIX: prod-
+
+db:
+  secretName: "freshlink-prod-notification-db"
+
+ingress:
+  enabled: false
