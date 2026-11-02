@@ -14,6 +14,7 @@ resources:
 env:
   SPRING_PROFILES_ACTIVE: prod
   QUEUE_PREFIX: prod-
+  EXPIRY_CRON: "0 0 * * * *"   # 유통기한 상태 갱신·알림을 매시 정각에. 기본값(자정)은 클러스터가 꺼져 있어 돌지 않는다. 시연 때는 "0 * * * * *"(매분)
 
 db:
   secretName: "freshlink-prod-inventory-db"
