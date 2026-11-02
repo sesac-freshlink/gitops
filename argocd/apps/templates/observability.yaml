@@ -8,6 +8,8 @@
 {{- $o := .Values.observability }}
 {{- /* infra가 아직 값을 넘기지 않은 클러스터(apply 전)에서도 서비스 앱까지 깨지지 않게, 값이 없으면 loki만 건너뛴다 */ -}}
 {{- $loki := dig "observability" "loki" dict .Values.cluster }}
+{{- /* Grafana CloudWatch용 IRSA Role. 값이 없으면 주석만 빠지고 CloudWatch 화면이 권한 오류를 낸다(나머지는 그대로) */ -}}
+{{- $grafana := dig "observability" "grafana" dict .Values.cluster }}
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -59,6 +61,27 @@ spec:
           serviceAccount:
             annotations:
               eks.amazonaws.com/role-arn: {{ required "cluster.observability.loki.roleArn이 필요하다" $loki.roleArn | quote }}
+        {{- else if eq $name "kube-prometheus-stack" }}
+        valuesObject:
+          # AWS 대시보드가 dev·prod를 가르는 값. dev·prod가 한 AWS 계정이라 큐·RDS·ALB·CloudFront를 env로 거른다
+          additionalPrometheusRulesMap:
+            freshlink-env:
+              groups:
+                - name: freshlink-env
+                  rules:
+                    - record: freshlink_env_info
+                      expr: vector(1)
+                      labels:
+                        env: {{ $.Values.env | quote }}
+          {{- with $grafana.roleArn }}
+          grafana:
+            serviceAccount:
+              annotations:
+                eks.amazonaws.com/role-arn: {{ . | quote }}
+            # 서비스 계정 주석만 바뀌면 파드가 다시 뜨지 않아 Role을 못 받는다. Role이 바뀌면 파드를 다시 띄운다
+            podAnnotations:
+              freshlink/aws-role: {{ . | sha256sum | trunc 8 | quote }}
+          {{- end }}
         {{- end }}
     - repoURL: {{ $.Values.gitops.repoURL }}
       targetRevision: {{ $.Values.gitops.revision }}
