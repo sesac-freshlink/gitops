@@ -21,7 +21,7 @@ Application은 이 폴더가 아니라 App of Apps 차트 [`argocd/apps/template
 
 외부 차트 버전은 `argocd/apps/values.yaml`의 `observability.charts`에 고정한다(2026-10-20 기준 kube-prometheus-stack 92.10.1, loki 7.3.0, alloy 1.13.1, Zipkin 이미지 3.6.1).
 
-환경마다 다른 값(Loki S3 버킷 이름, Loki IRSA Role ARN)은 공개 레포에 적지 않는다. infra `envs/<env>/cluster/helm.tf`의 root Application이 `cluster.observability.loki`로 넘긴다. 이 값이 없는 클러스터(infra apply 전)에서는 `loki` Application만 빠지고 나머지는 그대로 올라온다.
+환경마다 다른 값(Loki S3 버킷 이름, Loki·Grafana IRSA Role ARN)은 공개 레포에 적지 않는다. infra `envs/<env>/cluster/helm.tf`의 root Application이 `cluster.observability.loki`·`cluster.observability.grafana`로 넘긴다. 이 값이 없는 클러스터(infra apply 전)에서는 `loki` Application만 빠지고 나머지는 그대로 올라온다.
 
 ## 2. 흐름
 
@@ -100,3 +100,25 @@ kubectl -n observability port-forward svc/kube-prometheus-stack-prometheus 9090:
 4. PR을 올리고 머지하면 ArgoCD가 ConfigMap을 바꾸고 Grafana 사이드카가 다시 읽는다.
 
 쿠버네티스 기본 대시보드(노드·파드 자원 등)는 kube-prometheus-stack이 함께 넣는다.
+
+## 7. AWS 지표 (CloudWatch)
+
+RDS·SQS·ALB·CloudFront는 클러스터 밖이라 Prometheus가 모으지 않는다. Grafana가 CloudWatch에서 바로 읽는다(지표를 이 클러스터에 저장하지 않는다).
+
+| 무엇 | 어디 |
+| --- | --- |
+| 데이터 소스 `CloudWatch`(uid `cloudwatch`, 서울 리전, 키 없음) | [`values/kube-prometheus-stack.yaml`](values/kube-prometheus-stack.yaml) `additionalDataSources` |
+| Grafana 서비스 계정의 IRSA Role 주석 | [`argocd/apps/templates/observability.yaml`](../../argocd/apps/templates/observability.yaml). Role ARN은 infra가 `cluster.observability.grafana.roleArn`으로 넘긴다(infra README 4-23). 값이 없으면 주석만 빠진다 |
+| 환경 표시 `freshlink_env_info{env="dev"}` | 같은 템플릿의 Prometheus 기록 규칙. dev·prod가 한 AWS 계정이라 대시보드가 이 값으로 그 환경의 큐·RDS·ALB·CloudFront만 고른다 |
+| 대시보드 `FreshLink AWS (CloudWatch)` | [`manifests/dashboards/freshlink-aws.json`](manifests/dashboards/freshlink-aws.json) |
+
+대시보드가 고르는 방법:
+
+| 변수 | 고르는 법 |
+| --- | --- |
+| `queue`, `dlq` | SQS 큐 이름이 `<env>-inventory-commands`·`<env>-inventory-results`·`<env>-notification-events`(+`-dlq`)인 것. 개발자별 큐(`dev-<아이디>-`)는 뺀다. **큐를 새로 만들면 두 변수의 regex에 이름을 더한다** |
+| RDS | `freshlink-<env>-mysql` |
+| `alb` | 태그 `elbv2.k8s.aws/cluster = freshlink-<env>-eks`인 ALB(gateway Ingress로 컨트롤러가 만든 것) |
+| `cf` | us-east-1에서 태그 `Project = freshlink`, `Environment = <env>`인 CloudFront 배포. CloudFront 지표는 us-east-1에만 있다 |
+
+비용: 패널을 그릴 때마다 `GetMetricData` 요금(지표 1,000개당 0.01 USD)이 붙는다. 새로 고침을 5분으로 두고 더 짧게 고를 수 없게 했다. Lambda 로그는 대시보드에 넣지 않았다. Explore → CloudWatch → Logs에서 로그 그룹 `/aws/lambda/freshlink-<env>-post-confirmation`(가입 확인), `-dlq-alert`(DLQ 알림), `-cost-report`(비용 메일)를 골라 본다.

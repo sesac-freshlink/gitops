@@ -121,3 +121,12 @@ grafana:
           spanEndTimeShift: 5m
           customQuery: true
           query: '{namespace="freshlink"} |= "$${__trace.traceId}"'
+    # AWS 지표(RDS·SQS·ALB·CloudFront)와 Lambda 로그(멘토링 후 할 일). 키는 두지 않는다.
+    # Grafana 서비스 계정의 IRSA Role(infra envs/<env>/cluster의 grafana, 읽기만)로 들어간다.
+    # Role ARN은 계정 값이라 여기 적지 않고 argocd/apps templates/observability.yaml이 root 값에서 단다
+    - name: CloudWatch
+      uid: cloudwatch
+      type: cloudwatch
+      jsonData:
+        authType: default
+        defaultRegion: ap-northeast-2
