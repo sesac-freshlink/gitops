@@ -24,8 +24,7 @@ services:
 # 첫 release(main 승격)로 CI가 envs/prod/<서비스>/values.yaml에 태그를 넣은 뒤 이 목록에서 지운다
 notYetDeployed:
   dev: []
-  prod:
-    - notification-service
+  prod: []
 
 # 관측성 스택(platform/observability, 할 일 16). 환경마다 켠다. dev 확인을 마치고 prod도 켰다(10/28 release).
 # 켜면 서비스 파드에도 Zipkin 주소가 들어간다(꺼진 환경에서는 서비스가 추적을 보내지 않는다).
