@@ -14,9 +14,24 @@ resources:
 env:
   SPRING_PROFILES_ACTIVE: prod
   QUEUE_PREFIX: prod-
+  # 매일 시나리오 (3차 할 일 1-2·1-4, logistics-simulator README 5-1). prod는 주말 포함 매일 09:20 입고, 10:00–20:00 주문
+  # (점포 30곳 × 3–6건 = 하루 90–180건). 대상 점포는 고객 단골 점포 전부(1–30)
+  SIMULATOR_SCHEDULE_ENABLED: "true"
+  SIMULATOR_INBOUND_CRON: "0 20 9 * * *"
+  SIMULATOR_ORDERS_ENABLED: "true"
+  SIMULATOR_ORDERS_PER_STORE_MIN: "3"
+  SIMULATOR_ORDERS_PER_STORE_MAX: "6"
 
 db:
   secretName: ""
+
+# 가상 고객 sub·단골 점포 → SIMULATOR_CUSTOMERS. 비밀은 infra persistent 묶음이 만들고 scripts/seed-cognito.ps1 -Env prod가 값을 넣는다.
+# 값이 없으면 파드가 뜨지 않고 기다리므로 시드를 먼저 돌린다(infra README 4-12)
+extraSecrets:
+  - name: customers
+    secretName: "freshlink-prod/simulator/customers"
+    env:
+      SIMULATOR_CUSTOMERS: customers
 
 ingress:
   enabled: false
