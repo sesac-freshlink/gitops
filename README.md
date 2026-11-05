@@ -200,6 +200,7 @@ flowchart TB
     A --> OS["order-service"]
     A --> LS["logistics-simulator"]
     A --> CSS["ClusterSecretStore<br/>aws-secrets-manager"]
+    A --> NS["ExternalSecret<br/>argocd-notifications-secret<br/>(알림을 켠 환경)"]
     A --> OBS["관측성 4개 (환경별로 켬)<br/>observability-base · kube-prometheus-stack · loki · alloy"]
     G & MS & IS & OS & LS -. "차트" .-> C["charts/spring-service"]
     G -. "값" .-> V["envs/dev/gateway/values.yaml"]
@@ -210,6 +211,7 @@ flowchart TB
 - 관측성 Application 4개도 이 차트가 만든다(`templates/observability.yaml`). `values.yaml`의 `observability.enabled.<환경>`이 true인 클러스터에만 생기고, Loki 버킷·IRSA Role ARN은 root가 넘긴 `cluster.observability.loki`에서 받는다. 자세한 것은 [platform/observability](platform/observability/README.md).
 - Application에는 finalizer를 두지 않는다. 금요일 삭제 때 ArgoCD 컨트롤러를 먼저 멈추기 때문에 finalizer가 있으면 지우기가 끝나지 않는다. 서비스를 목록에서 빼면 Application만 사라지고 리소스는 남으므로 그때는 손으로 지운다.
 - 동기화 정책은 전부 `automated: { prune: true, selfHeal: true }`. 레포에서 지운 리소스는 클러스터에서도 지워지고, 손으로 바꾼 것은 되돌아간다.
+- ArgoCD 알림(동기화 실패·Health Degraded·Missing → Discord 오류 채널)의 웹훅 주소도 이 차트가 넣는다(`templates/argocd-notifications-secret.yaml`). root가 넘긴 `cluster.notifications.webhookSecretName` 비밀(JSON `url`)을 ExternalSecret으로 `argocd`의 `argocd-notifications-secret`에 넣는다. 값이 없는 환경에는 생기지 않는다. 트리거·메시지 내용은 infra `envs/<env>/cluster/helm.tf`(ArgoCD 차트 값)에 있고, 켜는 순서는 infra README 4-24.
 - 새 서비스를 추가할 때는 `argocd/apps/values.yaml`의 `services`에 한 줄 더한다(9장).
 - 네임스페이스는 앱 `freshlink`, 관측성 `observability`. 환경은 클러스터로 나누므로 네임스페이스 이름은 dev·prod가 같다.
 
