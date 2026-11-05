@@ -14,6 +14,8 @@ resources:
 env:
   SPRING_PROFILES_ACTIVE: dev
   QUEUE_PREFIX: dev-
+  # 시뮬레이터 주문 결제 완료 POST /ops/orders/{id}/simulated-payment (3차 할 일 1-3, 토스 없음, /ops라 밖에서 못 부른다)
+  SIMULATED_PAYMENT_ENABLED: "true"
 
 db:
   secretName: "freshlink-dev-order-db"
