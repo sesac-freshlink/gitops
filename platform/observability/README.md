@@ -27,7 +27,7 @@ Application은 이 폴더가 아니라 App of Apps 차트 [`argocd/apps/template
 
 ```mermaid
 flowchart LR
-    APP["Spring 파드<br/>Actuator · Micrometer"] -- "/actuator/prometheus<br/>(ServiceMonitor)" --> P["Prometheus<br/>EBS 3일"]
+    APP["Spring 파드<br/>Actuator · Micrometer"] -- "/actuator/prometheus<br/>(ServiceMonitor)" --> P["Prometheus<br/>EBS 14일"]
     APP -- "추적 (Brave → Zipkin)" --> Z["Zipkin<br/>메모리"]
     APP -- "stdout JSON 로그 (ECS)" --> A["Alloy<br/>(노드마다)"] --> L["Loki"] --> S3[("S3<br/>환경별 버킷, 14일")]
     P & L & Z --> G["Grafana"]
@@ -63,7 +63,7 @@ flowchart LR
 
 | 무엇 | 어디 | 얼마나 | 클러스터를 지우면 |
 | --- | --- | --- | --- |
-| 지표 | Prometheus, EBS gp3 10Gi | 3일 (8GB 넘으면 오래된 것부터) | 사라진다. dev는 금요일 삭제 때 그 주 지표가 없어진다(2026-10-17 결정) |
+| 지표 | Prometheus, EBS gp3 10Gi | 14일 (8GB 넘으면 오래된 것부터, 2026-11-13 3일에서 늘림) | 사라진다. dev는 금요일 삭제 때 그 주 지표가 없어진다(2026-10-17 결정). prod는 2026-11-13부터 클러스터를 지우지 않아 남는다 |
 | 로그 | Loki → S3 `freshlink-<env>-loki-logs-<계정 끝 4자리>` | 14일 (Loki 보관 + S3 수명 주기) | 남는다(버킷은 persistent 묶음) |
 | 추적 | Zipkin 메모리 | 파드가 살아 있는 동안 | 사라진다 |
 
