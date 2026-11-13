@@ -22,11 +22,11 @@ env:
   SIMULATOR_ORDERS_PER_STORE_MIN: "4"
   SIMULATOR_ORDERS_PER_STORE_MAX: "8"
   # 11/10 시연 데이터 보정: 09:20 입고 직전 점주 대신 경과 lot 한 번에 폐기, 주문 30%는 마감세일로,
-  # 신상품 P031–P036은 점포마다 6개 모두 넣는다(안 넣으면 고객 목록에 품절로 뜬다). 2–3개는 11/14–11/19에 처음 입고해 시연 11/20에 신상품 배지,
+  # 신상품 P031–P036은 점포마다 6개 모두 넣는다(안 넣으면 고객 목록에 품절로 뜬다). 2–3개는 11/15–11/19에 처음 입고해 시연 11/20에 신상품 배지,
   # 3–4개는 11/11–11/12에 처음 입고해 시연일 전에 배지(첫 입고 뒤 7일)가 끝난다. 상품 행은 infra seed-db.ps1 -Env prod -Part inventory를 먼저
   SIMULATOR_DISPOSE_EXPIRED: "true"
   SIMULATOR_CLEARANCE_RATE: "0.3"
-  SIMULATOR_LAUNCH_FROM: "2026-11-14"
+  SIMULATOR_LAUNCH_FROM: "2026-11-15"
   SIMULATOR_LAUNCH_TO: "2026-11-19"
   SIMULATOR_LAUNCH_EARLY_FROM: "2026-11-11"
   SIMULATOR_LAUNCH_EARLY_TO: "2026-11-12"
