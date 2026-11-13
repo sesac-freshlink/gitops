@@ -15,6 +15,7 @@ env:
   SPRING_PROFILES_ACTIVE: dev
   QUEUE_PREFIX: dev-
   EXPIRY_CRON: "0 0 * * * *"   # 유통기한 상태 갱신·알림을 매시 정각에. 기본값(자정)은 클러스터가 꺼져 있어 돌지 않는다. 시연 때는 "0 * * * * *"(매분)
+  BEDROCK_MODEL_ID: "global.anthropic.claude-sonnet-5-5"   # AI 점주 비서 (Bedrock 교차 리전 추론 프로필). 바꿀 수 있는 값: global.anthropic.claude-haiku-5-5, anthropic.claude-sonnet-5
 
 db:
   secretName: "freshlink-dev-inventory-db"
