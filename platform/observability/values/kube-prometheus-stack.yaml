@@ -30,7 +30,7 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     priorityClassName: freshlink-observability
-    retention: 3d
+    retention: 14d       # 2026-11-13: 3d → 14d. prod 클러스터를 시연(11/20)까지 지우지 않아 지표를 길게 남긴다
     retentionSize: 8GB   # 볼륨(10Gi)이 차기 전에 오래된 것부터 지운다
     # 다른 네임스페이스(freshlink)의 ServiceMonitor도 라벨 조건 없이 수집한다
     serviceMonitorSelectorNilUsesHelmValues: false
@@ -39,7 +39,8 @@ prometheus:
     resources:
       requests: { cpu: 200m, memory: 768Mi }
       limits: { memory: 1536Mi }
-    # 금요일 클러스터 삭제 때 이 볼륨도 지운다(infra dev-cluster.yml). 그래서 지표는 그 주 것만 남는다
+    # dev는 금요일 클러스터 삭제 때 이 볼륨도 지운다(infra dev-cluster.yml). 그래서 dev 지표는 그 주 것만 남는다.
+    # prod는 2026-11-13부터 클러스터를 지우지 않아 retention만큼 남는다. 노드 0대인 밤에도 볼륨(EBS)은 그대로다
     storageSpec:
       volumeClaimTemplate:
         spec:
