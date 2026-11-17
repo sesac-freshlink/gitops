@@ -21,7 +21,16 @@ env:
   SIMULATOR_ORDERS_ENABLED: "false"
   SIMULATOR_ORDERS_PER_STORE_MIN: "2"
   SIMULATOR_ORDERS_PER_STORE_MAX: "3"
-  SIMULATOR_STORES: "1,2,3"
+  SIMULATOR_STORES: "1,2,3,4"
+  # 11/17 태우님 요청: 팀원이 화면을 시험하며 사 가도 비지 않게 목표 수량 4배, 매일 내일 마감(기한 1일) lot 3개를 더 넣어
+  # 마감세일이 늘 있게 한다. 신상품 P031–P036은 11/18 아침 입고부터 점포마다 6개 모두(첫 입고 7일 = 신상품 배지).
+  # 상품 행(infra scripts/seed/dev-inventory.sql)을 먼저 넣어야 한다. 없는 상품이 섞이면 그 점포 입고가 통째로 실패한다
+  SIMULATOR_INBOUND_SCALE: "4"
+  SIMULATOR_CLEARANCE_LOTS: "3"
+  SIMULATOR_LAUNCH_FROM: "2026-11-18"
+  SIMULATOR_LAUNCH_TO: "2026-11-18"
+  SIMULATOR_LAUNCH_RECENT_MIN: "6"
+  SIMULATOR_LAUNCH_RECENT_MAX: "6"
 
 db:
   secretName: ""
