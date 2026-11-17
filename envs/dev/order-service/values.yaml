@@ -9,10 +9,13 @@ resources:
     cpu: 150m
     memory: 512Mi
   limits:
-    memory: 768Mi
+    memory: 1Gi   # 힙 400 고정(-Xmx) + 힙 밖 약 450(실측). limit을 바꾸면 아래 JAVA_TOOL_OPTIONS의 -Xmx도 같이 본다
 
 env:
   SPRING_PROFILES_ACTIVE: dev
+  # 11/17 k6 3,000명 부하테스트 OOMKilled 대응 (load-test results/README.md). 힙은 226MiB 사용 → 400 고정, 나머지는 힙 밖(Metaspace·코드 캐시·스레드·소켓)에 남긴다
+  # Dockerfile의 JAVA_TOOL_OPTIONS(MaxRAMPercentage=75)를 통째로 덮어쓰므로 ExitOnOutOfMemoryError도 다시 적는다. NMT는 jcmd 1 VM.native_memory summary로 네이티브 메모리를 항목별로 보려고 켠다(dev만)
+  JAVA_TOOL_OPTIONS: "-Xmx400m -XX:+ExitOnOutOfMemoryError -XX:NativeMemoryTracking=summary"
   QUEUE_PREFIX: dev-
   # 시뮬레이터 주문 결제 완료 POST /ops/orders/{id}/simulated-payment (3차 할 일 1-3, 토스 없음, /ops라 밖에서 못 부른다)
   SIMULATED_PAYMENT_ENABLED: "true"
