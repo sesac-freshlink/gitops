@@ -242,21 +242,21 @@ flowchart TB
 
 | 무엇 | 왜 | 담당 |
 | --- | --- | --- |
-| **ShedLock** | inventory·order는 파드를 2개씩 띄우므로, 유통기한 스케줄러와 10분 미결제 스케줄러가 그냥 두면 **두 번씩 돈다.** ShedLock으로 한 파드만 실행되게 한다 | 이태우, 김경우 |
+| **ShedLock** | inventory는 파드를 2개 띄우므로 유통기한 스케줄러가 그냥 두면 **두 번씩 돈다.** order는 지금 파드 1개지만 늘릴 때를 대비해 10분 미결제·선착순 입장 스케줄러에 미리 걸어 둔다. ShedLock으로 한 파드만 실행되게 한다 | 이태우, 김경우 |
 | Actuator 설정 | `management.endpoints.web.exposure.include=health,prometheus`, probe 그룹(liveness·readiness) 켜기. 공통 설정은 `common` 레포에 있다 | 각 서비스 |
 | 환경 변수 이름 | 이 레포 values의 환경 변수 이름과 서비스의 `application.yml` 키를 맞춘다. 이름을 바꾸면 담당자끼리 먼저 알린다 | 각 서비스 + 김진아 |
 | 로그 형식 | stdout에 JSON 한 줄(`logging.structured.format.console=ecs`). Alloy가 읽어 Loki로 보낸다 | `common` |
 
 ## 8. 서비스별 파드 계획
 
-dev·prod 같은 값이다. 근거는 기획안 인프라 산정 3-1.
+dev·prod 같은 값이다(order-service 메모리 상한만 다르다, 아래). 근거는 기획안 인프라 산정 3-1.
 
 | 서비스 | 파드 | CPU 요청 | 메모리 요청 / 상한 | 비고 |
 | --- | --- | --- | --- | --- |
 | gateway | 2 | 150m | 512Mi / 768Mi | 모든 요청의 입구 |
-| member-service | 1 | 150m | 512Mi / 768Mi | |
+| member-service | 2 | 150m | 512Mi / 768Mi | |
 | inventory-service | 2 | 150m | 640Mi / 1Gi | 재고 조회·유통기한 스케줄러 (ShedLock) |
-| order-service | 2 | 150m | 512Mi / 768Mi | 결제·미결제 스케줄러 (ShedLock) |
+| order-service | 1 | 150m | 512Mi / 1Gi (dev), 768Mi (prod) | 결제·미결제·선착순 입장 스케줄러 (ShedLock). 점주 매출·픽업 스캔 SSE 연결이 파드 메모리에 있어 1개 (10/30, 기술스택 3-8). 늘리려면 Redis Pub/Sub을 먼저 붙인다. dev는 메모리 상한 1Gi + `-Xmx400m` (11/17 부하 테스트 OOM 대응, #28) |
 | logistics-simulator | 1 | 100m | 256Mi / 512Mi | 시연 때만 사용 |
 | notification-service | 1 | 100m | 448Mi / 640Mi | 화면 알림 SSE. 연결이 파드 메모리에 있어 1개 (10/30) |
 | **앱 합계** | **9** | **약 1.25 vCPU** | **약 4.5 GiB** | |
